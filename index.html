@@ -2,8 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Mis Listas de Oración - Estilo Notion</title>
+  
+  <!-- Apple Mobile Web App & Touch Icon -->
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Mis Listas">
   
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,6 +26,9 @@
     <!-- Botón flotante para abrir/cerrar sidebar en móvil -->
     <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="Menú de categorías">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+    <button id="mobile-add-btn" class="mobile-add-btn" aria-label="Añadir entrada">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
     </button>
 
     <!-- Backdrop para cerrar sidebar en móvil -->
@@ -97,13 +106,11 @@
         </div>
         
         <div class="header-right">
-          <!-- Selector de Modo: Ver / Editar -->
-          <div class="mode-switch-container">
-            <div class="mode-switch">
-              <button id="mode-view" class="switch-btn active" title="Modo Visualización">👁️ Ver</button>
-              <button id="mode-edit" class="switch-btn" title="Modo Edición">✏️ Editar</button>
-            </div>
-          </div>
+          <!-- Botón de añadir rápido en cabecera -->
+          <button id="btn-header-add" class="btn-primary header-add-btn" title="Añadir nueva entrada" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Añadir</span>
+          </button>
         </div>
       </header>
 
@@ -163,17 +170,13 @@
         <!-- Nombre de la persona -->
         <div class="peek-group">
           <label class="peek-label">Nombre</label>
-          <h2 id="peek-person-name" class="peek-title view-element">Cargando...</h2>
-          <input type="text" id="edit-person-name" class="peek-input edit-element hidden" placeholder="Ej. Juan Pérez">
+          <input type="text" id="peek-person-name-input" class="peek-title-input" placeholder="Escribe el nombre...">
         </div>
 
         <!-- Categoría -->
         <div class="peek-group">
           <label class="peek-label">Categoría</label>
-          <div id="peek-person-category" class="view-element">
-            <span class="badge badge-teal">Amigos</span>
-          </div>
-          <select id="edit-person-category" class="peek-select edit-element hidden">
+          <select id="peek-person-category-select" class="peek-select">
             <!-- Se carga dinámicamente -->
           </select>
         </div>
@@ -187,7 +190,7 @@
             <span id="prayers-count" class="prayers-count">0 activas</span>
           </div>
 
-          <!-- Formulario rápido para añadir petición (Siempre visible para facilitar la carga de cosas concretas) -->
+          <!-- Formulario rápido para añadir petición -->
           <div class="add-prayer-row">
             <input type="text" id="new-prayer-input" placeholder="Añadir una petición concreta...">
             <button id="btn-add-prayer" class="btn-primary-sm">
@@ -199,25 +202,14 @@
           <ul id="active-prayers-list" class="prayers-checklist">
             <!-- Se cargan dinámicamente -->
           </ul>
-          
-          <!-- Listado de Peticiones Respondidas (Archivo plegable) -->
-          <div id="answered-prayers-container" class="answered-container hidden">
-            <button id="btn-toggle-answered" class="btn-toggle-archive">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="arrow-icon"><polyline points="9 18 15 12 9 6"></polyline></svg>
-              Peticiones Respondidas (<span id="answered-count">0</span>)
-            </button>
-            <ul id="answered-prayers-list" class="prayers-checklist answered-list hidden">
-              <!-- Se cargan dinámicamente -->
-            </ul>
-          </div>
         </div>
       </div>
       
-      <!-- Barra inferior del Side-Peek (solo en modo edición) -->
-      <div class="side-peek-footer edit-element hidden">
-        <button id="btn-delete-person" class="btn-danger">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-          Eliminar Persona
+      <!-- Barra inferior del Side-Peek -->
+      <div class="side-peek-footer" style="padding: 16px 20px; border-top: 1px solid var(--border-color); background-color: var(--bg-card);">
+        <button id="btn-delete-person" class="btn-danger" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>
+          Eliminar persona
         </button>
       </div>
     </aside>
@@ -262,74 +254,89 @@
       </div>
     </div>
 
-    <!-- MODAL: Crear Asunto -->
-    <div id="matter-modal" class="modal-backdrop hidden">
+    <!-- MODAL: Crear Nueva Entrada Unificada -->
+    <div id="add-entry-modal" class="modal-backdrop hidden">
       <div class="modal-box">
         <div class="modal-header">
-          <h3 id="modal-matter-title">Nuevo Asunto</h3>
-          <button id="btn-close-matter-modal" class="btn-icon">
+          <h3 id="modal-entry-title">Añadir Entrada</h3>
+          <button id="btn-close-entry-modal" class="btn-icon" title="Cerrar modal">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
+        
         <div class="modal-body">
-          <div class="input-group">
-            <label for="matter-title-input">Título del asunto</label>
-            <input type="text" id="matter-title-input" placeholder="Ej. Por la salud de España">
+          <!-- Selector de tipo (Persona / Asunto) -->
+          <div class="segmented-control">
+            <button id="btn-select-person" class="segment-btn active">👤 Persona</button>
+            <button id="btn-select-matter" class="segment-btn">📌 Asunto</button>
           </div>
-          <div class="input-group">
-            <label for="matter-desc-input">Detalles / Intención específica</label>
-            <textarea id="matter-desc-input" placeholder="Añade más información si es necesario..."></textarea>
+          
+          <!-- Campos para Persona -->
+          <div id="form-fields-person" class="form-fields">
+            <div class="input-group">
+              <label for="entry-person-name">Nombre de la persona</label>
+              <input type="text" id="entry-person-name" placeholder="Ej. Juan Pérez">
+            </div>
+            
+            <div class="input-group">
+              <label for="entry-person-cat">Categoría</label>
+              <select id="entry-person-cat">
+                <!-- Se cargan dinámicamente -->
+              </select>
+            </div>
+            
+            <!-- Creador de categoría inline (Oculto por defecto, se activa si eligen "Nueva...") -->
+            <div id="inline-category-creator" class="inline-creator hidden" style="margin-top: 10px; padding: 12px; background-color: var(--bg-hover); border-radius: 8px; border: 1px solid var(--border-color);">
+              <label style="font-weight: 600; font-size: 11.5px; margin-bottom: 6px; display: block;">Nueva Categoría</label>
+              <input type="text" id="new-cat-name-input" placeholder="Nombre de la categoría..." style="margin-bottom: 8px; width: 100%;">
+              <label style="font-size: 11px; margin-bottom: 6px; color: var(--text-secondary); display: block;">Selecciona un color:</label>
+              <div id="inline-color-picker" class="color-picker-grid" style="margin-bottom: 0;">
+                <button class="color-dot pink active" data-color="pink" title="Rosa"></button>
+                <button class="color-dot red" data-color="red" title="Rojo"></button>
+                <button class="color-dot orange" data-color="orange" title="Naranja"></button>
+                <button class="color-dot yellow" data-color="yellow" title="Amarillo"></button>
+                <button class="color-dot green" data-color="green" title="Verde"></button>
+                <button class="color-dot teal" data-color="teal" title="Teal"></button>
+                <button class="color-dot blue" data-color="blue" title="Azul"></button>
+                <button class="color-dot indigo" data-color="indigo" title="Índigo"></button>
+                <button class="color-dot purple" data-color="purple" title="Morado"></button>
+                <button class="color-dot brown" data-color="brown" title="Marrón"></button>
+                <button class="color-dot grey" data-color="grey" title="Gris"></button>
+              </div>
+            </div>
+            
+            <div class="input-group" style="margin-top: 12px;">
+              <label for="entry-person-prayer">Petición inicial (Opcional)</label>
+              <input type="text" id="entry-person-prayer" placeholder="Ej. Por su salud o intención...">
+            </div>
           </div>
-          <div class="input-group">
-            <label for="matter-cat-input">Categoría / Etiqueta rápida</label>
-            <input type="text" id="matter-cat-input" placeholder="Ej. Salud, Trabajo, General" list="matter-cats">
-            <datalist id="matter-cats">
-              <option value="General"></option>
-              <option value="Salud"></option>
-              <option value="Trabajo"></option>
-              <option value="Iglesia"></option>
-              <option value="Estudios"></option>
-            </datalist>
+          
+          <!-- Campos para Asunto -->
+          <div id="form-fields-matter" class="form-fields hidden">
+            <div class="input-group">
+              <label for="entry-matter-title">Título del asunto</label>
+              <input type="text" id="entry-matter-title" placeholder="Ej. Por la salud de España">
+            </div>
+            <div class="input-group">
+              <label for="entry-matter-desc">Detalles / Intención</label>
+              <textarea id="entry-matter-desc" placeholder="Añade más información si es necesario..."></textarea>
+            </div>
+            <div class="input-group">
+              <label for="entry-matter-cat">Categoría / Etiqueta rápida</label>
+              <input type="text" id="entry-matter-cat" placeholder="Ej. Salud, Trabajo, General" list="entry-matter-cats">
+              <datalist id="entry-matter-cats">
+                <option value="General"></option>
+                <option value="Salud"></option>
+                <option value="Trabajo"></option>
+                <option value="Iglesia"></option>
+              </datalist>
+            </div>
           </div>
         </div>
+        
         <div class="modal-footer">
-          <button id="btn-delete-matter" class="btn-danger hidden">Eliminar</button>
-          <div style="flex-grow: 1;"></div>
-          <button id="btn-cancel-matter" class="btn-secondary">Cancelar</button>
-          <button id="btn-save-matter" class="btn-primary">Guardar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL: Crear/Editar Persona -->
-    <div id="person-modal" class="modal-backdrop hidden">
-      <div class="modal-box">
-        <div class="modal-header">
-          <h3 id="modal-person-title">Añadir Persona</h3>
-          <button id="btn-close-person-modal" class="btn-icon" title="Cerrar modal">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="input-group">
-            <label for="person-name-input">Nombre de la persona</label>
-            <input type="text" id="person-name-input" placeholder="Ej. Juan Pérez">
-          </div>
-          <div class="input-group">
-            <label for="person-cat-select">Categoría</label>
-            <select id="person-cat-select">
-              <!-- Se cargan dinámicamente -->
-            </select>
-          </div>
-          <div class="input-group">
-            <label for="person-initial-prayer-input">Petición inicial (Opcional)</label>
-            <input type="text" id="person-initial-prayer-input" placeholder="Ej. Por su salud, trabajo...">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <div style="flex-grow: 1;"></div>
-          <button id="btn-cancel-person" class="btn-secondary">Cancelar</button>
-          <button id="btn-save-person" class="btn-primary">Añadir</button>
+          <button id="btn-cancel-entry" class="btn-secondary">Cancelar</button>
+          <button id="btn-save-entry" class="btn-primary">Añadir</button>
         </div>
       </div>
     </div>
