@@ -1335,6 +1335,7 @@ body.mode-edit-active .hidden-in-edit {
   background-color: transparent;
   border-radius: 8px;
   transition: opacity var(--t-fast);
+  scroll-margin-top: 80px; /* Offset para que no quede debajo de la cabecera fija */
 }
 
 .category-header-toggle {
