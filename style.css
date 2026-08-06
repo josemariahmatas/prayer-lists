@@ -594,22 +594,24 @@ body.mode-edit-active .hidden-in-edit {
 /* CARDS GRID (Personas List) */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  transition: background-color var(--t-fast);
+  min-height: 40px;
 }
 
 .person-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
-  padding: 16px;
-  border-radius: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
   cursor: pointer;
   position: relative;
-  transition: transform var(--t-fast), border-color var(--t-fast), box-shadow var(--t-fast);
+  transition: transform var(--t-fast), border-color var(--t-fast), box-shadow var(--t-fast), opacity var(--t-fast);
 }
 
 .person-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   border-color: rgba(55, 53, 47, 0.2);
   box-shadow: var(--shadow-sm);
 }
@@ -618,39 +620,39 @@ body.mode-edit-active .hidden-in-edit {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 4px;
 }
 
 .person-name {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  line-height: 1.3;
 }
 
 .person-card-prayers {
-  margin-top: 10px;
-  padding-top: 6px;
+  margin-top: 6px;
+  padding-top: 4px;
   border-top: 1px dashed var(--border-color);
-  font-size: 11.5px;
+  font-size: 10.5px;
   color: var(--text-secondary);
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .small-prayer-bullet {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 450;
+  font-weight: 400;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 /* Card Actions (Solo en modo edición) */
@@ -1369,8 +1371,8 @@ body.mode-edit-active .hidden-in-edit {
 
 /* Tighter, smaller styling for categories list to fit more on screen */
 #categories-list .menu-item {
-  font-size: 12.5px;
-  padding: 5px 8px;
+  font-size: 12px;
+  padding: 4px 6px;
 }
 
 #categories-list .menu-color-indicator {
@@ -1385,4 +1387,97 @@ body.mode-edit-active .hidden-in-edit {
     padding-top: 24px;
     padding-bottom: 12px;
   }
+}
+
+/* Theme overrides for body classes */
+body.light-theme {
+  --bg-page: #ffffff;
+  --bg-sidebar: #f7f7f5;
+  --bg-card: #ffffff;
+  --bg-hover: rgba(55, 53, 47, 0.04);
+  --bg-active: rgba(55, 53, 47, 0.08);
+  --text-main: #37352f;
+  --text-secondary: #7c7b77;
+  --border-color: rgba(55, 53, 47, 0.09);
+  --tag-pink-bg: #fde2e4;   --tag-pink-txt: #601f46;
+  --tag-red-bg: #ffe2e2;    --tag-red-txt: #802020;
+  --tag-orange-bg: #ffe9d5; --tag-orange-txt: #7e3e08;
+  --tag-yellow-bg: #fef3c7; --tag-yellow-txt: #754a00;
+  --tag-green-bg: #e2f4e5;  --tag-green-txt: #1b5226;
+  --tag-teal-bg: #ccfbf1;   --tag-teal-txt: #115e59;
+  --tag-blue-bg: #e3effc;   --tag-blue-txt: #18487b;
+  --tag-indigo-bg: #e0e7ff; --tag-indigo-txt: #3730a3;
+  --tag-purple-bg: #f2e6fc; --tag-purple-txt: #562788;
+  --tag-brown-bg: #f5ebdc;  --tag-brown-txt: #5d3f1d;
+  --tag-grey-bg: #f1f1ef;   --tag-grey-txt: #4b4a47;
+}
+
+body.dark-theme {
+  --bg-page: #191919;
+  --bg-sidebar: #202020;
+  --bg-card: #252525;
+  --bg-hover: rgba(255, 255, 255, 0.055);
+  --bg-active: rgba(255, 255, 255, 0.085);
+  --text-main: #e3e3e3;
+  --text-secondary: #9b9b9b;
+  --border-color: rgba(255, 255, 255, 0.085);
+  --tag-pink-bg: #4c223c;   --tag-pink-txt: #ffc4e8;
+  --tag-red-bg: #522222;    --tag-red-txt: #ffc4c4;
+  --tag-orange-bg: #593019; --tag-orange-txt: #ffd8bf;
+  --tag-yellow-bg: #443711; --tag-yellow-txt: #ffe89e;
+  --tag-green-bg: #1c3d24;  --tag-green-txt: #bbf7c3;
+  --tag-teal-bg: #114b43;   --tag-teal-txt: #99f6e4;
+  --tag-blue-bg: #1a324b;   --tag-blue-txt: #c3e2ff;
+  --tag-indigo-bg: #282566; --tag-indigo-txt: #c7d2fe;
+  --tag-purple-bg: #3c245c; --tag-purple-txt: #e9d5ff;
+  --tag-brown-bg: #3d2f21;  --tag-brown-txt: #ebd8c2;
+  --tag-grey-bg: #2d2d2d;   --tag-grey-txt: #d4d4d4;
+}
+
+/* Sidebar Footer and Theme Toggle */
+.sidebar-footer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-sidebar);
+}
+
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color var(--t-fast);
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--bg-hover);
+}
+
+/* Drag & Drop Visual Classes */
+.person-card.dragging {
+  opacity: 0.4 !important;
+  border: 1px dashed var(--color-primary) !important;
+  transform: scale(0.96);
+  box-shadow: none !important;
+}
+
+.cards-grid.drag-over {
+  background-color: rgba(35, 131, 226, 0.05);
+  border-radius: 6px;
+  outline: 2px dashed var(--color-primary);
+  outline-offset: -2px;
+}
+
+.person-card.drag-over-before {
+  border-left: 3px solid var(--color-primary) !important;
 }
