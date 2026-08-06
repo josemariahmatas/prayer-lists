@@ -5,7 +5,7 @@ export const INITIAL_CATEGORIES = [
   { id: "familia", name: "Familia", color: "red" },
   { id: "sj", name: "SJ", color: "purple" },
   { id: "pitables", name: "Pitables", color: "yellow" },
-  { id: "abuelos-tios", name: "Abuelos y Tíos", color: "brown" },
+  { id: "abuelos", name: "Abuelos", color: "brown" },
   { id: "sr", name: "SR.", color: "indigo" },
   { id: "amigos", name: "Amigos", color: "teal" },
   { id: "unav", name: "UNAV", color: "green" },
@@ -20,12 +20,17 @@ export const INITIAL_CATEGORIES = [
 
 export const INITIAL_PEOPLE = [
   // Especiales
-  { name: "El Papa 🇻🇦", category: "especiales", prayers: [{ id: "1", text: "Intenciones mensuales", status: "active" }] },
-  { name: "El Padre [Estatutos]", category: "especiales", prayers: [{ id: "2", text: "Por su salud y labor pastoral", status: "active" }] },
-  { name: "D. José Cobo", category: "especiales", prayers: [{ id: "3", text: "Por su ministerio episcopal", status: "active" }] },
-  { name: "POR MI NUEVO ENCARGO", category: "especiales", prayers: [{ id: "4", text: "Para dar fruto en esta nueva labor", status: "active" }] },
-  { name: "ESPAÑA 🇪🇸", category: "especiales", prayers: [{ id: "5", text: "Por el país y sus gobernantes", status: "active" }] },
-  { name: "Y LOS QUE VENDRÁN", category: "especiales", prayers: [{ id: "6", text: "Por las futuras vocaciones y proyectos", status: "active" }] },
+  { name: "El Papa 🇻🇦", category: "especiales", prayers: [] },
+  { name: "El Padre [Estatutos]", category: "especiales", prayers: [
+    { id: "padre-1", text: "Estatutos", status: "active" },
+    { id: "padre-2", text: "Viaje apostólico", status: "active" }
+  ] },
+  { name: "D. José Cobo", category: "especiales", prayers: [
+    { id: "cobo-1", text: "Por su ministerio episcopal", status: "active" }
+  ] },
+  { name: "POR MI NUEVO ENCARGO", category: "especiales", prayers: [] },
+  { name: "ESPAÑA 🇪🇸", category: "especiales", prayers: [] },
+  { name: "Y LOS QUE VENDRÁN", category: "especiales", prayers: [] },
 
   // CODEC
   { name: "Alfonso Jiménez", category: "codec", prayers: [] },
@@ -75,14 +80,14 @@ export const INITIAL_PEOPLE = [
   { name: "Ignacio Gómez-Capapé", category: "pitables", prayers: [] },
   { name: "Pedro Izco", category: "pitables", prayers: [] },
 
-  // Abuelos y Tíos
-  { name: "Abuelo Javier", category: "abuelos-tios", prayers: [] },
-  { name: "Abuela Luci", category: "abuelos-tios", prayers: [] },
-  { name: "Abuela Sole", category: "abuelos-tios", prayers: [] },
-  { name: "Abuelo Nino (RIP)", category: "abuelos-tios", prayers: [] },
-  { name: "Tía Leo", category: "abuelos-tios", prayers: [] },
-  { name: "Tía Pepi (RIP)", category: "abuelos-tios", prayers: [] },
-  { name: "Tía Encarna", category: "abuelos-tios", prayers: [] },
+  // Abuelos
+  { name: "Abuelo Javier", category: "abuelos", prayers: [] },
+  { name: "Abuela Luci", category: "abuelos", prayers: [] },
+  { name: "Abuela Sole", category: "abuelos", prayers: [] },
+  { name: "Abuelo Nino (RIP)", category: "abuelos", prayers: [] },
+  { name: "Tía Leo", category: "abuelos", prayers: [] },
+  { name: "Tía Pepi (RIP)", category: "abuelos", prayers: [] },
+  { name: "Tía Encarna", category: "abuelos", prayers: [] },
 
   // SR
   { name: "Josemaria Colino", category: "sr", prayers: [] },
@@ -100,7 +105,9 @@ export const INITIAL_PEOPLE = [
   { name: "Juan González", category: "sr", prayers: [] },
 
   // Amigos
-  { name: "Arturo (Surco G99)", category: "amigos", prayers: [] },
+  { name: "Arturo", category: "amigos", prayers: [
+    { id: "arturo-1", text: "punto 99 surco - G", status: "active" }
+  ] },
   { name: "Jorge López", category: "amigos", prayers: [] },
   { name: "Luís Herranz", category: "amigos", prayers: [] },
   { name: "Javi Mateo", category: "amigos", prayers: [] },
