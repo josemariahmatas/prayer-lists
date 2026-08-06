@@ -61,12 +61,29 @@
         </div>
       </div>
 
-      <!-- Pie de página con cambio de tema -->
+      <!-- Pie de página con Ajustes -->
       <div class="sidebar-footer">
-        <button id="btn-toggle-theme" class="theme-toggle-btn">
-          <span class="theme-icon">🌙</span>
-          <span class="theme-text">Modo Oscuro</span>
-        </button>
+        <div class="settings-panel">
+          <div class="settings-title">⚙️ Ajustes</div>
+          
+          <!-- Opción Tema -->
+          <div class="settings-row">
+            <span class="settings-label">Tema</span>
+            <div class="settings-options">
+              <button id="theme-light" class="settings-btn active" title="Tema Claro">Claro</button>
+              <button id="theme-dark" class="settings-btn" title="Tema Oscuro">Oscuro</button>
+            </div>
+          </div>
+          
+          <!-- Opción Disposición -->
+          <div class="settings-row">
+            <span class="settings-label">Disposición</span>
+            <div class="settings-options">
+              <button id="layout-1-col" class="settings-btn" title="Lista de 1 Columna">1 Col</button>
+              <button id="layout-2-col" class="settings-btn active" title="Lista de 2 Columnas">2 Cols</button>
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
 
