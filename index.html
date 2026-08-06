@@ -27,40 +27,45 @@
 
     <!-- SIDEBAR (Estilo Notion) -->
     <aside id="app-sidebar" class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <span class="logo-emoji">🙏</span>
-          <span class="logo-text">Mis Listas</span>
+      
+      <!-- Contenedor scrollable superior -->
+      <div class="sidebar-scrollable-content" style="flex-grow: 1; overflow-y: auto;">
+        <!-- Menú principal de Navegación -->
+        <div class="sidebar-section" style="padding-top: 16px; padding-bottom: 0;">
+          <ul class="sidebar-menu">
+            <li>
+              <button id="tab-people" class="menu-item navigation-menu-item active">
+                <span class="menu-item-left">👥 Listas</span>
+              </button>
+            </li>
+            <li>
+              <button id="tab-matters" class="menu-item navigation-menu-item">
+                <span class="menu-item-left">📌 Asuntos Pendientes</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 12px 12px 6px;">
+
+        <!-- Sección de Categorías -->
+        <div class="sidebar-section">
+          <div class="section-title">CATEGORÍAS</div>
+          <ul id="categories-list" class="sidebar-menu">
+            <!-- Se cargan dinámicamente -->
+          </ul>
+          <button id="btn-add-category" class="btn-sidebar-add hidden-in-view">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Nueva categoría
+          </button>
         </div>
       </div>
-      
-      <!-- Menú principal de Navegación -->
-      <div class="sidebar-section" style="padding-bottom: 0;">
-        <ul class="sidebar-menu">
-          <li>
-            <button id="tab-people" class="menu-item navigation-menu-item active">
-              <span class="menu-item-left">👥 Listas</span>
-            </button>
-          </li>
-          <li>
-            <button id="tab-matters" class="menu-item navigation-menu-item">
-              <span class="menu-item-left">📌 Asuntos Pendientes</span>
-            </button>
-          </li>
-        </ul>
-      </div>
 
-      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 12px 12px 6px;">
-
-      <!-- Sección de Categorías -->
-      <div class="sidebar-section">
-        <div class="section-title">CATEGORÍAS</div>
-        <ul id="categories-list" class="sidebar-menu">
-          <!-- Se cargan dinámicamente -->
-        </ul>
-        <button id="btn-add-category" class="btn-sidebar-add hidden-in-view">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          Nueva categoría
+      <!-- Pie de página con cambio de tema -->
+      <div class="sidebar-footer">
+        <button id="btn-toggle-theme" class="theme-toggle-btn">
+          <span class="theme-icon">🌙</span>
+          <span class="theme-text">Modo Oscuro</span>
         </button>
       </div>
     </aside>
