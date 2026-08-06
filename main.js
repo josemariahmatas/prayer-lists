@@ -1105,6 +1105,12 @@ async function saveAddEntry() {
     
     if (!name) return;
     
+    // Evitar valores undefined en base de datos
+    if (!category && state.categories.length > 0) {
+      category = state.categories[0].id;
+    }
+    category = category || 'sin-categoria';
+    
     try {
       // Si eligen "Crear nueva categoría..."
       if (category === 'create-new-cat') {
