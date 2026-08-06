@@ -1620,20 +1620,20 @@ body.dark-theme .segmented-control {
 .mobile-add-btn {
   display: none;
   position: fixed;
-  top: 16px;
-  left: 76px;
-  width: 48px;
-  height: 48px;
+  bottom: 20px;
+  left: 20px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background-color: var(--color-primary);
   color: #ffffff;
   border: none;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 999;
   cursor: pointer;
   align-items: center;
   justify-content: center;
-  transition: transform var(--t-fast);
+  transition: transform var(--t-fast), background-color var(--t-fast);
 }
 
 .mobile-add-btn:active {
