@@ -22,7 +22,10 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
     </button>
 
-    <!-- SIDEBAR: Categorías (Estilo Notion) -->
+    <!-- Backdrop para cerrar sidebar en móvil -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+    <!-- SIDEBAR (Estilo Notion) -->
     <aside id="app-sidebar" class="sidebar">
       <div class="sidebar-header">
         <div class="logo">
@@ -31,6 +34,25 @@
         </div>
       </div>
       
+      <!-- Menú principal de Navegación -->
+      <div class="sidebar-section" style="padding-bottom: 0;">
+        <ul class="sidebar-menu">
+          <li>
+            <button id="tab-people" class="menu-item active">
+              <span class="menu-item-left">👥 Gente por la que rezar</span>
+            </button>
+          </li>
+          <li>
+            <button id="tab-matters" class="menu-item">
+              <span class="menu-item-left">📌 Asuntos Pendientes</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 12px 12px 6px;">
+
+      <!-- Sección de Categorías -->
       <div class="sidebar-section">
         <div class="section-title">CATEGORÍAS</div>
         <ul id="categories-list" class="sidebar-menu">
@@ -49,8 +71,7 @@
       <!-- HEADER PRINCIPAL -->
       <header class="main-header">
         <div class="header-left">
-          <h1 id="active-category-title">Cargando...</h1>
-          <span id="active-category-badge" class="badge"></span>
+          <h1 id="main-app-title">Oraciones</h1>
         </div>
         
         <div class="header-right">
@@ -64,16 +85,6 @@
           </div>
         </div>
       </header>
-
-      <!-- PESTAÑAS (Tabs) -->
-      <div class="tabs-container">
-        <button id="tab-people" class="tab-btn active">
-          👥 Gente por la que rezar
-        </button>
-        <button id="tab-matters" class="tab-btn">
-          📌 Asuntos Pendientes
-        </button>
-      </div>
 
       <!-- BUSCADOR Y ACCIONES RÁPIDAS -->
       <section class="controls-section">
@@ -92,14 +103,13 @@
         </button>
       </section>
 
-      <!-- VISTA 1: GENTE (Personas) -->
+      <!-- VISTA 1: GENTE (Todas las categorías seguidas) -->
       <section id="people-section" class="tab-content active">
-        <div id="people-grid" class="cards-grid">
-          <!-- Se cargan dinámicamente -->
+        <div id="categories-container" class="categories-container">
+          <!-- Se cargan dinámicamente con sus respectivas grids de personas -->
         </div>
         <div id="people-empty" class="empty-state hidden">
-          <p>No hay nadie registrado en esta categoría.</p>
-          <button id="btn-empty-add-person" class="btn-secondary hidden-in-view">Añadir primera persona</button>
+          <p>No hay categorías registradas.</p>
         </div>
       </section>
 
