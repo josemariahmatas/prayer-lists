@@ -37,7 +37,10 @@ const DOM = {
   appSidebar: document.getElementById('app-sidebar'),
   categoriesList: document.getElementById('categories-list'),
   btnAddCategory: document.getElementById('btn-add-category'),
-  btnToggleTheme: document.getElementById('btn-toggle-theme'),
+  themeLight: document.getElementById('theme-light'),
+  themeDark: document.getElementById('theme-dark'),
+  layout1Col: document.getElementById('layout-1-col'),
+  layout2Col: document.getElementById('layout-2-col'),
   
   mainAppTitle: document.getElementById('main-app-title'),
   
@@ -109,7 +112,7 @@ let editingMatterId = null;
 async function init() {
   setAppMode('view');
   setupEventListeners();
-  initTheme();
+  initSettings();
   
   // Verificar si la base de datos está vacía para auto-importar
   const catsSnap = await getDocs(collection(db, 'categories'));
@@ -121,38 +124,51 @@ async function init() {
   }
 }
 
-// --- TEMA CLARO / OSCURO ---
-function initTheme() {
+// --- CONFIGURACIÓN DE AJUSTES ---
+function initSettings() {
+  // 1. Tema Claro / Oscuro
   const savedTheme = localStorage.getItem('theme');
   const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  
   if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+    setTheme('dark');
+  } else {
+    setTheme('light');
+  }
+
+  // 2. Disposición de Columnas
+  const savedLayout = localStorage.getItem('layout') || '2-col';
+  setLayout(savedLayout);
+}
+
+function setTheme(theme) {
+  if (theme === 'dark') {
     document.body.classList.add('dark-theme');
     document.body.classList.remove('light-theme');
-    DOM.btnToggleTheme.querySelector('.theme-icon').textContent = '☀️';
-    DOM.btnToggleTheme.querySelector('.theme-text').textContent = 'Modo Claro';
+    localStorage.setItem('theme', 'dark');
+    DOM.themeDark.classList.add('active');
+    DOM.themeLight.classList.remove('active');
   } else {
     document.body.classList.add('light-theme');
     document.body.classList.remove('dark-theme');
-    DOM.btnToggleTheme.querySelector('.theme-icon').textContent = '🌙';
-    DOM.btnToggleTheme.querySelector('.theme-text').textContent = 'Modo Oscuro';
+    localStorage.setItem('theme', 'light');
+    DOM.themeLight.classList.add('active');
+    DOM.themeDark.classList.remove('active');
   }
 }
 
-function toggleTheme() {
-  const isDark = document.body.classList.contains('dark-theme');
-  if (isDark) {
-    document.body.classList.remove('dark-theme');
-    document.body.classList.add('light-theme');
-    localStorage.setItem('theme', 'light');
-    DOM.btnToggleTheme.querySelector('.theme-icon').textContent = '🌙';
-    DOM.btnToggleTheme.querySelector('.theme-text').textContent = 'Modo Oscuro';
+function setLayout(layout) {
+  if (layout === '1-col') {
+    document.body.classList.add('layout-1-col-active');
+    document.body.classList.remove('layout-2-col-active');
+    localStorage.setItem('layout', '1-col');
+    DOM.layout1Col.classList.add('active');
+    DOM.layout2Col.classList.remove('active');
   } else {
-    document.body.classList.remove('light-theme');
-    document.body.classList.add('dark-theme');
-    localStorage.setItem('theme', 'dark');
-    DOM.btnToggleTheme.querySelector('.theme-icon').textContent = '☀️';
-    DOM.btnToggleTheme.querySelector('.theme-text').textContent = 'Modo Claro';
+    document.body.classList.add('layout-2-col-active');
+    document.body.classList.remove('layout-1-col-active');
+    localStorage.setItem('layout', '2-col');
+    DOM.layout2Col.classList.add('active');
+    DOM.layout1Col.classList.remove('active');
   }
 }
 
@@ -1089,8 +1105,11 @@ function setupEventListeners() {
   // Cerrar sidebar al hacer click en el backdrop
   DOM.sidebarBackdrop.addEventListener('click', closeMobileSidebar);
   
-  // Botón Toggle Tema
-  DOM.btnToggleTheme.addEventListener('click', toggleTheme);
+  // Ajustes de Tema y Disposición
+  DOM.themeLight.addEventListener('click', () => setTheme('light'));
+  DOM.themeDark.addEventListener('click', () => setTheme('dark'));
+  DOM.layout1Col.addEventListener('click', () => setLayout('1-col'));
+  DOM.layout2Col.addEventListener('click', () => setLayout('2-col'));
   
   // Tabs en la barra lateral
   DOM.tabPeople.addEventListener('click', () => {
