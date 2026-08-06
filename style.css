@@ -317,10 +317,18 @@ body.mode-edit-active .hidden-in-edit {
 
 /* Header elements */
 .main-header {
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-page);
+  z-index: 10;
+  margin-top: -40px;
+  padding-top: 40px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
 }
 
 .header-left {
@@ -1349,4 +1357,32 @@ body.mode-edit-active .hidden-in-edit {
 
 .category-section.collapsed {
   margin-bottom: 4px;
+}
+
+/* Specific styling for prominent navigation menu items in the sidebar */
+.navigation-menu-item {
+  font-size: 15px !important;
+  padding: 10px 14px !important;
+  font-weight: 600 !important;
+  margin-bottom: 4px;
+}
+
+/* Tighter, smaller styling for categories list to fit more on screen */
+#categories-list .menu-item {
+  font-size: 12.5px;
+  padding: 5px 8px;
+}
+
+#categories-list .menu-color-indicator {
+  width: 6px;
+  height: 6px;
+}
+
+/* Sticky Header adjustment on Mobile Screens */
+@media (max-width: 768px) {
+  .main-header {
+    margin-top: -24px;
+    padding-top: 24px;
+    padding-bottom: 12px;
+  }
 }
