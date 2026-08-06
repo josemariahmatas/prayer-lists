@@ -42,6 +42,7 @@ const DOM = {
   layout1Col: document.getElementById('layout-1-col'),
   layout2Col: document.getElementById('layout-2-col'),
   
+  mainContent: document.querySelector('.main-content'),
   mainAppTitle: document.getElementById('main-app-title'),
   
   modeView: document.getElementById('mode-view'),
@@ -102,11 +103,30 @@ const DOM = {
   btnCancelMatter: document.getElementById('btn-cancel-matter'),
   btnSaveMatter: document.getElementById('btn-save-matter'),
   btnCloseMatterModal: document.getElementById('btn-close-matter-modal'),
+
+  // Modal Personas (Nuevo)
+  personModal: document.getElementById('person-modal'),
+  modalPersonTitle: document.getElementById('modal-person-title'),
+  personNameInput: document.getElementById('person-name-input'),
+  personCatSelect: document.getElementById('person-cat-select'),
+  personInitialPrayerInput: document.getElementById('person-initial-prayer-input'),
+  btnCancelPerson: document.getElementById('btn-cancel-person'),
+  btnSavePerson: document.getElementById('btn-save-person'),
+  btnClosePersonModal: document.getElementById('btn-close-person-modal'),
+
+  // Modal Confirmación (Nuevo)
+  confirmModal: document.getElementById('confirm-modal'),
+  confirmModalTitle: document.getElementById('confirm-modal-title'),
+  confirmModalMessage: document.getElementById('confirm-modal-message'),
+  btnConfirmCancel: document.getElementById('btn-confirm-cancel'),
+  btnConfirmOk: document.getElementById('btn-confirm-ok'),
 };
 
-// Variables para modales
+// Variables para modales y drag scroll
 let editingCategoryId = null;
 let editingMatterId = null;
+let activeConfirmCallback = null;
+let dragScrollInterval = null;
 
 // --- INICIALIZACIÓN ---
 async function init() {
@@ -135,8 +155,8 @@ function initSettings() {
     setTheme('light');
   }
 
-  // 2. Disposición de Columnas
-  const savedLayout = localStorage.getItem('layout') || '2-col';
+  // 2. Disposición de Columnas (Por defecto modo 1 columna ahora!)
+  const savedLayout = localStorage.getItem('layout') || '1-col';
   setLayout(savedLayout);
 }
 
@@ -172,6 +192,47 @@ function setLayout(layout) {
   }
 }
 
+// --- SISTEMA DRAG SCROLL FLUIDO ---
+function handleDragScroll(e) {
+  const container = DOM.mainContent;
+  if (!container) return;
+  
+  const rect = container.getBoundingClientRect();
+  const topEdge = rect.top + 80;
+  const bottomEdge = rect.bottom - 80;
+  
+  clearInterval(dragScrollInterval);
+  
+  if (e.clientY < topEdge) {
+    const speed = Math.max(3, (topEdge - e.clientY) / 3);
+    dragScrollInterval = setInterval(() => {
+      container.scrollTop -= speed;
+    }, 15);
+  } else if (e.clientY > bottomEdge) {
+    const speed = Math.max(3, (e.clientY - bottomEdge) / 3);
+    dragScrollInterval = setInterval(() => {
+      container.scrollTop += speed;
+    }, 15);
+  }
+}
+
+function stopDragScroll() {
+  clearInterval(dragScrollInterval);
+}
+
+// --- VENTANA MODAL DE CONFIRMACIÓN PERSONALIZADA ---
+function showConfirmModal(title, message, onOk) {
+  DOM.confirmModalTitle.textContent = title;
+  DOM.confirmModalMessage.textContent = message;
+  activeConfirmCallback = onOk;
+  DOM.confirmModal.classList.remove('hidden');
+}
+
+function closeConfirmModal() {
+  DOM.confirmModal.classList.add('hidden');
+  activeConfirmCallback = null;
+}
+
 // --- CONEXIÓN A FIRESTORE EN TIEMPO REAL ---
 function loadRealtimeData() {
   // 1. Escuchar Categorías
@@ -182,7 +243,6 @@ function loadRealtimeData() {
       state.categories.push({ id: doc.id, ...doc.data() });
     });
     
-    // Ordenar según el orden inicial establecido
     state.categories.sort((a, b) => {
       const indexA = CATEGORY_ORDER.indexOf(a.id);
       const indexB = CATEGORY_ORDER.indexOf(b.id);
@@ -199,7 +259,7 @@ function loadRealtimeData() {
     renderPeople();
   });
 
-  // 2. Escuchar Personas (Toda la colección)
+  // 2. Escuchar Personas
   const peopleQuery = query(collection(db, 'people'));
   onSnapshot(peopleQuery, (snapshot) => {
     state.people = [];
@@ -207,7 +267,6 @@ function loadRealtimeData() {
       state.people.push({ id: doc.id, ...doc.data() });
     });
     
-    // Ordenar por orden establecido por drag&drop; si no tienen, por nombre
     state.people.sort((a, b) => {
       const orderA = a.order !== undefined ? a.order : 0;
       const orderB = b.order !== undefined ? b.order : 0;
@@ -220,7 +279,6 @@ function loadRealtimeData() {
     
     renderPeople();
     
-    // Actualizar side-peek si está abierto
     if (state.selectedPerson) {
       const updatedPerson = state.people.find(p => p.id === state.selectedPerson.id);
       if (updatedPerson) {
@@ -248,7 +306,6 @@ async function importInitialData() {
   try {
     const batch = writeBatch(db);
     
-    // 1. Importar Categorías
     INITIAL_CATEGORIES.forEach((cat) => {
       const catRef = doc(collection(db, 'categories'), cat.id);
       batch.set(catRef, {
@@ -257,7 +314,6 @@ async function importInitialData() {
       });
     });
     
-    // 2. Importar Personas (ordenadas inicialmente por su índice en la lista)
     INITIAL_PEOPLE.forEach((person, index) => {
       const personRef = doc(collection(db, 'people'));
       batch.set(personRef, {
@@ -269,7 +325,6 @@ async function importInitialData() {
       });
     });
     
-    // 3. Importar Asuntos
     INITIAL_MATTERS.forEach((matter) => {
       const matterRef = doc(collection(db, 'matters'));
       batch.set(matterRef, {
@@ -290,7 +345,6 @@ async function importInitialData() {
 
 // --- RENDERIZADORES DE INTERFAZ ---
 
-// 1. Renderizar Categorías en Sidebar (Enlaces de navegación rápida)
 function renderCategoriesSidebar() {
   DOM.categoriesList.innerHTML = '';
   
@@ -345,7 +399,6 @@ function scrollToCategorySection(categoryId) {
   }
 }
 
-// 2. Renderizar Lista Unificada de Personas agrupadas por Categorías
 function renderPeople() {
   DOM.categoriesContainer.innerHTML = '';
   
@@ -385,11 +438,10 @@ function renderPeople() {
       </button>
       
       <div class="cards-grid" data-category-id="${cat.id}">
-        <!-- Renderizado de las tarjetas de personas -->
+        <!-- Tarjetas de personas -->
       </div>
     `;
     
-    // Toggle colapsar
     const toggleBtn = section.querySelector('.category-header-toggle');
     toggleBtn.addEventListener('click', () => {
       const currentlyCollapsed = !state.collapsedCategories[cat.id];
@@ -404,12 +456,13 @@ function renderPeople() {
       }
     });
     
-    // Drag & Drop a nivel de CONTENEDOR GRID (para arrastrar sobre categorías vacías)
     const grid = section.querySelector('.cards-grid');
     
+    // DRAG OVER GRID
     grid.addEventListener('dragover', (e) => {
       if (state.currentMode !== 'edit') return;
       e.preventDefault();
+      handleDragScroll(e);
       grid.classList.add('drag-over');
     });
     
@@ -421,8 +474,8 @@ function renderPeople() {
       if (state.currentMode !== 'edit') return;
       e.preventDefault();
       grid.classList.remove('drag-over');
+      stopDragScroll();
       
-      // Si se soltó sobre una card de persona, que lo maneje el listener de la card
       if (e.target.closest('.person-card')) return;
       
       const draggedId = e.dataTransfer.getData('text/plain');
@@ -431,7 +484,6 @@ function renderPeople() {
       
       const targetCatId = cat.id;
       
-      // Si cambia de categoría
       if (draggedPerson.category !== targetCatId) {
         const targetCatPeople = state.people.filter(p => p.category === targetCatId);
         const newOrder = targetCatPeople.length;
@@ -442,12 +494,11 @@ function renderPeople() {
             order: newOrder
           });
         } catch (err) {
-          console.error("Error al mover persona a otra categoría:", err);
+          console.error("Error al mover persona:", err);
         }
       }
     });
     
-    // Renderizar tarjetas
     if (catPeople.length === 0) {
       grid.innerHTML = `<div style="grid-column: 1/-1; padding: 12px; font-size: 13px; color: var(--text-secondary);">No hay nadie en esta categoría.</div>`;
     } else {
@@ -456,7 +507,6 @@ function renderPeople() {
         card.className = 'person-card';
         card.setAttribute('data-id', person.id);
         
-        // Habilitar drag only in Edit mode
         if (state.currentMode === 'edit') {
           card.setAttribute('draggable', 'true');
         }
@@ -484,7 +534,7 @@ function renderPeople() {
           </div>
         `;
         
-        // --- DRAG & DROP LISTENERS A NIVEL DE TARJETA ---
+        // DRAG & DROP TARJETA
         card.addEventListener('dragstart', (e) => {
           e.dataTransfer.setData('text/plain', person.id);
           card.classList.add('dragging');
@@ -492,6 +542,7 @@ function renderPeople() {
         
         card.addEventListener('dragend', () => {
           card.classList.remove('dragging');
+          stopDragScroll();
           document.querySelectorAll('.person-card').forEach(c => c.classList.remove('drag-over-before'));
           document.querySelectorAll('.cards-grid').forEach(g => g.classList.remove('drag-over'));
         });
@@ -499,6 +550,8 @@ function renderPeople() {
         card.addEventListener('dragover', (e) => {
           if (state.currentMode !== 'edit') return;
           e.preventDefault();
+          handleDragScroll(e);
+          
           const draggingCard = document.querySelector('.person-card.dragging');
           if (draggingCard && draggingCard !== card) {
             card.classList.add('drag-over-before');
@@ -513,6 +566,7 @@ function renderPeople() {
           if (state.currentMode !== 'edit') return;
           e.preventDefault();
           card.classList.remove('drag-over-before');
+          stopDragScroll();
           
           const draggedId = e.dataTransfer.getData('text/plain');
           const targetId = person.id;
@@ -524,17 +578,11 @@ function renderPeople() {
           if (!draggedPerson || !targetPerson) return;
           
           const targetCatId = targetPerson.category;
-          
-          // Obtener miembros de la categoría destino (excluyendo al que arrastramos si ya estaba ahí)
           const targetCatPeople = state.people.filter(p => p.category === targetCatId && p.id !== draggedId);
-          
-          // Encontrar índice del target
           const targetIdx = targetCatPeople.findIndex(p => p.id === targetId);
           
-          // Insertar en la nueva posición
           targetCatPeople.splice(targetIdx, 0, draggedPerson);
           
-          // Guardar orden en batch
           try {
             const batch = writeBatch(db);
             targetCatPeople.forEach((p, idx) => {
@@ -573,7 +621,6 @@ function renderPeople() {
   applyModeVisibility();
 }
 
-// 3. Renderizar Asuntos Pendientes
 function renderMatters() {
   DOM.mattersList.innerHTML = '';
   
@@ -809,34 +856,67 @@ async function deletePrayer(personId, prayerId) {
   }
 }
 
-async function addPerson() {
-  const name = prompt("Nombre de la persona por la que rezar:");
-  if (!name || !name.trim()) return;
+// --- NUEVO SISTEMA MODAL DE AGREGAR PERSONA ---
+function openPersonModal() {
+  DOM.personNameInput.value = '';
+  DOM.personInitialPrayerInput.value = '';
   
-  const defaultCategory = state.categories.length > 0 ? state.categories[0].id : 'especiales';
+  DOM.personCatSelect.innerHTML = '';
+  state.categories.forEach((cat) => {
+    const opt = document.createElement('option');
+    opt.value = cat.id;
+    opt.textContent = cat.name;
+    DOM.personCatSelect.appendChild(opt);
+  });
   
-  // Obtener cantidad de personas de esa categoría para el orden final
-  const currentMembers = state.people.filter(p => p.category === defaultCategory);
+  DOM.personModal.classList.remove('hidden');
+  DOM.personNameInput.focus();
+}
+
+function closePersonModal() {
+  DOM.personModal.classList.add('hidden');
+}
+
+async function saveNewPerson() {
+  const name = DOM.personNameInput.value.trim();
+  const category = DOM.personCatSelect.value;
+  const initialPrayer = DOM.personInitialPrayerInput.value.trim();
+  
+  if (!name) return;
+  
+  const currentMembers = state.people.filter(p => p.category === category);
   const nextOrderIndex = currentMembers.length;
   
   try {
+    const prayers = [];
+    if (initialPrayer) {
+      prayers.push({
+        id: Date.now().toString(),
+        text: initialPrayer,
+        status: 'active',
+        createdAt: new Date()
+      });
+    }
+    
     const docRef = await addDoc(collection(db, 'people'), {
-      name: name.trim(),
-      category: defaultCategory,
-      prayers: [],
+      name,
+      category,
+      prayers,
       order: nextOrderIndex,
       createdAt: new Date()
     });
     
+    closePersonModal();
+    
     const newPerson = {
       id: docRef.id,
-      name: name.trim(),
-      category: defaultCategory,
-      prayers: []
+      name,
+      category,
+      prayers
     };
     openSidePeek(newPerson);
-  } catch (error) {
-    console.error("Error añadiendo persona:", error);
+  } catch (err) {
+    console.error("Error al crear persona:", err);
   }
 }
 
@@ -853,7 +933,6 @@ async function savePersonChanges() {
       name: newName
     };
     
-    // Si se cambia de categoría, se le asigna el orden final en la nueva categoría
     if (newCat !== state.selectedPerson.category) {
       const targetCatPeople = state.people.filter(p => p.category === newCat);
       updates.category = newCat;
@@ -866,18 +945,24 @@ async function savePersonChanges() {
   }
 }
 
-async function deletePerson(id) {
-  const confirmDel = confirm("¿Seguro que deseas eliminar a esta persona de la lista?");
-  if (!confirmDel) return;
+function deletePerson(id) {
+  const person = state.people.find(p => p.id === id);
+  const name = person ? person.name : 'esta persona';
   
-  try {
-    await deleteDoc(doc(db, 'people', id));
-    if (state.selectedPerson && state.selectedPerson.id === id) {
-      closeSidePeek();
+  showConfirmModal(
+    "Eliminar Persona",
+    `¿Seguro que deseas eliminar a ${name} de tus listas de oración? Esta acción no se puede deshacer.`,
+    async () => {
+      try {
+        await deleteDoc(doc(db, 'people', id));
+        if (state.selectedPerson && state.selectedPerson.id === id) {
+          closeSidePeek();
+        }
+      } catch (error) {
+        console.error("Error eliminando persona:", error);
+      }
     }
-  } catch (error) {
-    console.error("Error eliminando persona:", error);
-  }
+  );
 }
 
 async function saveCategory() {
@@ -899,26 +984,31 @@ async function saveCategory() {
   }
 }
 
-async function deleteCategory() {
+function deleteCategory() {
   if (!editingCategoryId) return;
+  const cat = state.categories.find(c => c.id === editingCategoryId);
+  const name = cat ? cat.name : 'esta categoría';
   
-  const confirmDel = confirm("¿Deseas eliminar esta categoría? (Las personas asignadas seguirán existiendo pero no tendrán categoría).");
-  if (!confirmDel) return;
-  
-  try {
-    const q = query(collection(db, 'people'), where('category', '==', editingCategoryId));
-    const snap = await getDocs(q);
-    const batch = writeBatch(db);
-    snap.forEach((doc) => {
-      batch.update(doc.ref, { category: 'sin-categoria' });
-    });
-    await batch.commit();
-    
-    await deleteDoc(doc(db, 'categories', editingCategoryId));
-    closeCategoryModal();
-  } catch (error) {
-    console.error("Error eliminando categoría:", error);
-  }
+  showConfirmModal(
+    "Eliminar Categoría",
+    `¿Seguro que quieres eliminar la categoría "${name}"? Las personas asignadas seguirán existiendo sin categoría.`,
+    async () => {
+      try {
+        const q = query(collection(db, 'people'), where('category', '==', editingCategoryId));
+        const snap = await getDocs(q);
+        const batch = writeBatch(db);
+        snap.forEach((doc) => {
+          batch.update(doc.ref, { category: 'sin-categoria' });
+        });
+        await batch.commit();
+        
+        await deleteDoc(doc(db, 'categories', editingCategoryId));
+        closeCategoryModal();
+      } catch (error) {
+        console.error("Error eliminando categoría:", error);
+      }
+    }
+  );
 }
 
 async function saveMatter() {
@@ -950,16 +1040,22 @@ async function saveMatter() {
   }
 }
 
-async function deleteMatter(id) {
-  const confirmDel = confirm("¿Seguro que quieres eliminar este asunto?");
-  if (!confirmDel) return;
+function deleteMatter(id) {
+  const matter = state.matters.find(m => m.id === id);
+  const title = matter ? matter.title : 'este asunto';
   
-  try {
-    await deleteDoc(doc(db, 'matters', id));
-    closeMatterModal();
-  } catch (error) {
-    console.error("Error eliminando asunto:", error);
-  }
+  showConfirmModal(
+    "Eliminar Asunto",
+    `¿Seguro que quieres eliminar el asunto "${title}"?`,
+    async () => {
+      try {
+        await deleteDoc(doc(db, 'matters', id));
+        closeMatterModal();
+      } catch (error) {
+        console.error("Error eliminando asunto:", error);
+      }
+    }
+  );
 }
 
 // --- MODALES ---
@@ -1067,7 +1163,6 @@ function setAppMode(mode) {
     document.body.className = 'mode-edit-active';
   }
   
-  // Re-renderizar personas para habilitar/deshabilitar draggable en las tarjetas
   renderPeople();
   
   if (state.selectedPerson) {
@@ -1096,22 +1191,20 @@ function closeMobileSidebar() {
 
 // --- MANEJADORES DE EVENTOS ---
 function setupEventListeners() {
-  // Toggle Sidebar en móvil
   DOM.sidebarToggle.addEventListener('click', () => {
     DOM.appSidebar.classList.add('active');
     DOM.sidebarBackdrop.classList.add('active');
   });
   
-  // Cerrar sidebar al hacer click en el backdrop
   DOM.sidebarBackdrop.addEventListener('click', closeMobileSidebar);
   
-  // Ajustes de Tema y Disposición
+  // Ajustes
   DOM.themeLight.addEventListener('click', () => setTheme('light'));
   DOM.themeDark.addEventListener('click', () => setTheme('dark'));
   DOM.layout1Col.addEventListener('click', () => setLayout('1-col'));
   DOM.layout2Col.addEventListener('click', () => setLayout('2-col'));
   
-  // Tabs en la barra lateral
+  // Tabs sidebar
   DOM.tabPeople.addEventListener('click', () => {
     setActiveTab('people');
     closeMobileSidebar();
@@ -1121,19 +1214,17 @@ function setupEventListeners() {
     closeMobileSidebar();
   });
   
-  // Selector de Modo
   DOM.modeView.addEventListener('click', () => setAppMode('view'));
   DOM.modeEdit.addEventListener('click', () => setAppMode('edit'));
   
-  // Buscador
   DOM.searchInput.addEventListener('input', (e) => {
     state.searchQuery = e.target.value;
     if (state.activeTab === 'people') renderPeople();
     else renderMatters();
   });
   
-  // Añadir personas y asuntos
-  DOM.btnAddPerson.addEventListener('click', addPerson);
+  // Añadir personas/asuntos
+  DOM.btnAddPerson.addEventListener('click', openPersonModal);
   DOM.btnAddMatter.addEventListener('click', () => openMatterModal());
   DOM.btnEmptyAddMatter.addEventListener('click', () => openMatterModal());
   
@@ -1149,6 +1240,24 @@ function setupEventListeners() {
   DOM.btnCloseMatterModal.addEventListener('click', closeMatterModal);
   DOM.btnSaveMatter.addEventListener('click', saveMatter);
   DOM.btnDeleteMatter.addEventListener('click', () => deleteMatter(editingMatterId));
+
+  // Modals Personas (Nuevo)
+  DOM.btnClosePersonModal.addEventListener('click', closePersonModal);
+  DOM.btnCancelPerson.addEventListener('click', closePersonModal);
+  DOM.btnSavePerson.addEventListener('click', saveNewPerson);
+  DOM.personNameInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') saveNewPerson();
+  });
+  DOM.personInitialPrayerInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') saveNewPerson();
+  });
+
+  // Modal Confirmación (Nuevo)
+  DOM.btnConfirmCancel.addEventListener('click', closeConfirmModal);
+  DOM.btnConfirmOk.addEventListener('click', () => {
+    if (activeConfirmCallback) activeConfirmCallback();
+    closeConfirmModal();
+  });
   
   // Color Picker
   DOM.colorPickerGrid.addEventListener('click', (e) => {
@@ -1168,13 +1277,11 @@ function setupEventListeners() {
     DOM.answeredPrayersList.classList.toggle('hidden');
   });
   
-  // Añadir peticiones concretas en side-peek
   DOM.btnAddPrayer.addEventListener('click', addNewPrayer);
   DOM.newPrayerInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') addNewPrayer();
   });
   
-  // Guardar cambios al perder foco
   DOM.editPersonName.addEventListener('blur', savePersonChanges);
   DOM.editPersonCategory.addEventListener('change', savePersonChanges);
   DOM.btnDeletePerson.addEventListener('click', () => {
