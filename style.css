@@ -1340,19 +1340,23 @@ body.mode-edit-active .hidden-in-edit {
 .category-header-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   background: transparent;
   border: none;
   font-family: var(--font-main);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 17.5px;
+  font-weight: 700;
   color: var(--text-main);
-  cursor: pointer;
-  padding: 8px 12px;
+  cursor: grab;
+  padding: 10px 14px;
   border-radius: 6px;
-  margin-left: -12px;
+  margin-left: -14px;
   margin-bottom: 8px;
   transition: background-color var(--t-fast);
+}
+
+.category-header-toggle:active {
+  cursor: grabbing;
 }
 
 .category-header-toggle:hover {
@@ -1563,4 +1567,141 @@ body.layout-2-col-active .cards-grid {
 
 .person-card.drag-over-before {
   border-left: 3px solid var(--color-primary) !important;
+}
+
+/* Category header dragging indicators */
+.category-header-toggle.dragging {
+  opacity: 0.5;
+}
+.category-header-toggle.drag-over-cat {
+  background-color: rgba(35, 131, 226, 0.1) !important;
+  border-radius: 6px;
+}
+
+/* Segmented Control Switch */
+.segmented-control {
+  display: flex;
+  background-color: rgba(55, 53, 47, 0.05);
+  border: 1px solid var(--border-color);
+  padding: 3px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+body.dark-theme .segmented-control {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.segment-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px;
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.segment-btn.active {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Floating mobile add button */
+.mobile-add-btn {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 76px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  box-shadow: var(--shadow-md);
+  z-index: 999;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--t-fast);
+}
+
+.mobile-add-btn:active {
+  transform: scale(0.9);
+}
+
+@media (max-width: 768px) {
+  .mobile-add-btn {
+    display: flex;
+  }
+  .header-add-btn {
+    display: none !important;
+  }
+}
+
+/* Swipe-to-delete layout structures */
+.swipe-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: var(--color-danger);
+}
+
+.swipe-content {
+  position: relative;
+  z-index: 2;
+  background-color: var(--bg-card);
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.swipe-delete-reveal {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 70px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+  background-color: var(--color-danger);
+}
+
+.swipe-container.swiped-left .swipe-content {
+  transform: translateX(-70px);
+}
+
+/* Notion style inline title input in Side-Peek */
+.peek-title-input {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-main);
+  background: transparent;
+  border: none;
+  width: 100%;
+  padding: 4px 0;
+  margin-bottom: 8px;
+  font-family: var(--font-main);
+  border-radius: 4px;
+}
+
+.peek-title-input:focus {
+  outline: none;
+  background-color: var(--bg-hover);
+  padding-left: 6px;
+  padding-right: 6px;
 }
