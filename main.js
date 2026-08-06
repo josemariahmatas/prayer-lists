@@ -30,10 +30,6 @@ let state = {
 
 // --- ELEMENTOS DEL DOM ---
 const DOM = {
-  importBanner: document.getElementById('import-banner'),
-  btnImportYes: document.getElementById('btn-import-yes'),
-  btnImportNo: document.getElementById('btn-import-no'),
-  
   sidebarToggle: document.getElementById('sidebar-toggle'),
   appSidebar: document.getElementById('app-sidebar'),
   categoriesList: document.getElementById('categories-list'),
@@ -112,10 +108,11 @@ async function init() {
   setAppMode('view');
   setupEventListeners();
   
-  // 1. Verificar si la base de datos está vacía para sugerir importación
+  // 1. Verificar si la base de datos está vacía y auto-importar si es necesario
   const catsSnap = await getDocs(collection(db, 'categories'));
   if (catsSnap.empty) {
-    DOM.importBanner.classList.remove('hidden');
+    console.log("Base de datos vacía. Precargando listas iniciales de forma automática...");
+    await importInitialData();
   } else {
     loadRealtimeData();
   }
@@ -192,9 +189,6 @@ function setupPeopleListener() {
 
 // --- LOGICA DE IMPORTACIÓN ---
 async function importInitialData() {
-  DOM.btnImportYes.disabled = true;
-  DOM.btnImportYes.textContent = "Importando...";
-  
   try {
     const batch = writeBatch(db);
     
@@ -231,13 +225,9 @@ async function importInitialData() {
     });
     
     await batch.commit();
-    DOM.importBanner.classList.add('hidden');
     loadRealtimeData();
   } catch (error) {
     console.error("Error importando datos iniciales:", error);
-    alert("Hubo un error al importar los datos. Inténtalo de nuevo.");
-    DOM.btnImportYes.disabled = false;
-    DOM.btnImportYes.textContent = "Sí, precargar lista";
   }
 }
 
@@ -917,15 +907,6 @@ function applyModeVisibility() {
 
 // --- MANEJADORES DE EVENTOS ---
 function setupEventListeners() {
-  // Banner de importación
-  DOM.btnImportYes.addEventListener('click', importInitialData);
-  DOM.btnImportNo.addEventListener('click', () => {
-    DOM.importBanner.classList.add('hidden');
-    // Inicializar vacía creando la categoría especiales por defecto
-    addDoc(collection(db, 'categories'), { name: 'Especiales', color: 'pink' })
-      .then(() => loadRealtimeData());
-  });
-  
   // Sidebar móvil
   DOM.sidebarToggle.addEventListener('click', () => {
     DOM.appSidebar.classList.toggle('active');
