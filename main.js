@@ -865,7 +865,7 @@ function setActiveTab(tab) {
     DOM.mattersSection.classList.remove('active');
     DOM.btnAddPerson.classList.remove('hidden');
     DOM.btnAddMatter.classList.add('hidden');
-    DOM.mainAppTitle.textContent = "Oraciones";
+    DOM.mainAppTitle.textContent = "Listas";
   } else {
     DOM.tabPeople.classList.remove('active');
     DOM.tabMatters.classList.add('active');
