@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis Listas de Oración - Estilo Notion</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  
+  <!-- Banner de Importación Inicial (solo visible si la BD está vacía) -->
+  <div id="import-banner" class="hidden">
+    <div class="import-content">
+      <span>✨ Parece que es la primera vez que entras. ¿Quieres precargar tu lista inicial con más de 150 nombres y categorías?</span>
+      <div class="import-buttons">
+        <button id="btn-import-yes" class="btn-primary">Sí, precargar lista</button>
+        <button id="btn-import-no" class="btn-secondary">No, empezar de cero</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- Botón flotante para abrir/cerrar sidebar en móvil -->
+    <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="Menú de categorías">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+
+    <!-- SIDEBAR: Categorías (Estilo Notion) -->
+    <aside id="app-sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-emoji">🙏</span>
+          <span class="logo-text">Mis Listas</span>
+        </div>
+      </div>
+      
+      <div class="sidebar-section">
+        <div class="section-title">CATEGORÍAS</div>
+        <ul id="categories-list" class="sidebar-menu">
+          <!-- Se cargan dinámicamente -->
+        </ul>
+        <button id="btn-add-category" class="btn-sidebar-add hidden-in-view">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Nueva categoría
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content">
+      
+      <!-- HEADER PRINCIPAL -->
+      <header class="main-header">
+        <div class="header-left">
+          <h1 id="active-category-title">Cargando...</h1>
+          <span id="active-category-badge" class="badge"></span>
+        </div>
+        
+        <div class="header-right">
+          <!-- Selector de Modo: Ver / Editar -->
+          <div class="mode-switch-container">
+            <span class="mode-label">Modo:</span>
+            <div class="mode-switch">
+              <button id="mode-view" class="switch-btn active" title="Modo Visualización">👁️ Ver</button>
+              <button id="mode-edit" class="switch-btn" title="Modo Edición">✏️ Editar</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- PESTAÑAS (Tabs) -->
+      <div class="tabs-container">
+        <button id="tab-people" class="tab-btn active">
+          👥 Gente por la que rezar
+        </button>
+        <button id="tab-matters" class="tab-btn">
+          📌 Asuntos Pendientes
+        </button>
+      </div>
+
+      <!-- BUSCADOR Y ACCIONES RÁPIDAS -->
+      <section class="controls-section">
+        <div class="search-wrapper">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="search-input" placeholder="Buscar personas, intenciones...">
+        </div>
+        
+        <button id="btn-add-person" class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Añadir persona
+        </button>
+        <button id="btn-add-matter" class="btn-primary hidden">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Añadir asunto
+        </button>
+      </section>
+
+      <!-- VISTA 1: GENTE (Personas) -->
+      <section id="people-section" class="tab-content active">
+        <div id="people-grid" class="cards-grid">
+          <!-- Se cargan dinámicamente -->
+        </div>
+        <div id="people-empty" class="empty-state hidden">
+          <p>No hay nadie registrado en esta categoría.</p>
+          <button id="btn-empty-add-person" class="btn-secondary hidden-in-view">Añadir primera persona</button>
+        </div>
+      </section>
+
+      <!-- VISTA 2: ASUNTOS (Matters) -->
+      <section id="matters-section" class="tab-content">
+        <div id="matters-list" class="matters-list">
+          <!-- Se cargan dinámicamente -->
+        </div>
+        <div id="matters-empty" class="empty-state hidden">
+          <p>No hay asuntos pendientes registrados.</p>
+          <button id="btn-empty-add-matter" class="btn-secondary">Añadir primer asunto</button>
+        </div>
+      </section>
+      
+    </main>
+
+    <!-- NOTION "SIDE-PEEK" PANEL (Detalles de Persona) -->
+    <div id="side-overlay" class="side-overlay"></div>
+    <aside id="side-peek" class="side-peek">
+      <div class="side-peek-header">
+        <button id="btn-close-peek" class="btn-icon" aria-label="Cerrar panel">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <span class="peek-badge">Detalles</span>
+      </div>
+
+      <div class="side-peek-content">
+        <!-- Nombre de la persona -->
+        <div class="peek-group">
+          <label class="peek-label">Nombre</label>
+          <h2 id="peek-person-name" class="peek-title view-element">Cargando...</h2>
+          <input type="text" id="edit-person-name" class="peek-input edit-element hidden" placeholder="Ej. Juan Pérez">
+        </div>
+
+        <!-- Categoría -->
+        <div class="peek-group">
+          <label class="peek-label">Categoría</label>
+          <div id="peek-person-category" class="view-element">
+            <span class="badge badge-teal">Amigos</span>
+          </div>
+          <select id="edit-person-category" class="peek-select edit-element hidden">
+            <!-- Se carga dinámicamente -->
+          </select>
+        </div>
+
+        <hr class="peek-divider">
+
+        <!-- Cosas Concretas / Peticiones de Oración -->
+        <div class="peek-group">
+          <div class="peek-prayers-header">
+            <label class="peek-label">Peticiones de Oración</label>
+            <span id="prayers-count" class="prayers-count">0 activas</span>
+          </div>
+
+          <!-- Formulario rápido para añadir petición (Siempre visible para facilitar la carga de cosas concretas) -->
+          <div class="add-prayer-row">
+            <input type="text" id="new-prayer-input" placeholder="Añadir una petición concreta...">
+            <button id="btn-add-prayer" class="btn-primary-sm">
+              Añadir
+            </button>
+          </div>
+
+          <!-- Listado de Peticiones Activas -->
+          <ul id="active-prayers-list" class="prayers-checklist">
+            <!-- Se cargan dinámicamente -->
+          </ul>
+          
+          <!-- Listado de Peticiones Respondidas (Archivo plegable) -->
+          <div id="answered-prayers-container" class="answered-container hidden">
+            <button id="btn-toggle-answered" class="btn-toggle-archive">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="arrow-icon"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              Peticiones Respondidas (<span id="answered-count">0</span>)
+            </button>
+            <ul id="answered-prayers-list" class="prayers-checklist answered-list hidden">
+              <!-- Se cargan dinámicamente -->
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Barra inferior del Side-Peek (solo en modo edición) -->
+      <div class="side-peek-footer edit-element hidden">
+        <button id="btn-delete-person" class="btn-danger">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+          Eliminar Persona
+        </button>
+      </div>
+    </aside>
+
+    <!-- MODAL: Crear/Editar Categoría -->
+    <div id="category-modal" class="modal-backdrop hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 id="modal-category-title">Nueva Categoría</h3>
+          <button id="btn-close-category-modal" class="btn-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="input-group">
+            <label for="category-name-input">Nombre de la categoría</label>
+            <input type="text" id="category-name-input" placeholder="Ej. Primos lejanos">
+          </div>
+          <div class="input-group">
+            <label>Color de la etiqueta</label>
+            <div id="color-picker-grid" class="color-picker-grid">
+              <button class="color-dot pink active" data-color="pink" title="Rosa"></button>
+              <button class="color-dot red" data-color="red" title="Rojo"></button>
+              <button class="color-dot orange" data-color="orange" title="Naranja"></button>
+              <button class="color-dot yellow" data-color="yellow" title="Amarillo"></button>
+              <button class="color-dot green" data-color="green" title="Verde"></button>
+              <button class="color-dot teal" data-color="teal" title="Teal"></button>
+              <button class="color-dot blue" data-color="blue" title="Azul"></button>
+              <button class="color-dot indigo" data-color="indigo" title="Índigo"></button>
+              <button class="color-dot purple" data-color="purple" title="Morado"></button>
+              <button class="color-dot brown" data-color="brown" title="Marrón"></button>
+              <button class="color-dot grey" data-color="grey" title="Gris"></button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-delete-category" class="btn-danger hidden">Eliminar</button>
+          <div style="flex-grow: 1;"></div>
+          <button id="btn-cancel-category" class="btn-secondary">Cancelar</button>
+          <button id="btn-save-category" class="btn-primary">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Crear Asunto -->
+    <div id="matter-modal" class="modal-backdrop hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 id="modal-matter-title">Nuevo Asunto</h3>
+          <button id="btn-close-matter-modal" class="btn-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="input-group">
+            <label for="matter-title-input">Título del asunto</label>
+            <input type="text" id="matter-title-input" placeholder="Ej. Por la salud de España">
+          </div>
+          <div class="input-group">
+            <label for="matter-desc-input">Detalles / Intención específica</label>
+            <textarea id="matter-desc-input" placeholder="Añade más información si es necesario..."></textarea>
+          </div>
+          <div class="input-group">
+            <label for="matter-cat-input">Categoría / Etiqueta rápida</label>
+            <input type="text" id="matter-cat-input" placeholder="Ej. Salud, Trabajo, General" list="matter-cats">
+            <datalist id="matter-cats">
+              <option value="General"></option>
+              <option value="Salud"></option>
+              <option value="Trabajo"></option>
+              <option value="Iglesia"></option>
+              <option value="Estudios"></option>
+            </datalist>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-delete-matter" class="btn-danger hidden">Eliminar</button>
+          <div style="flex-grow: 1;"></div>
+          <button id="btn-cancel-matter" class="btn-secondary">Cancelar</button>
+          <button id="btn-save-matter" class="btn-primary">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JS Module Entry Point -->
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
