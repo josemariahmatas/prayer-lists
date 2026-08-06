@@ -10,33 +10,35 @@ import {
   where, 
   orderBy, 
   getDocs, 
-  writeBatch,
-  serverTimestamp
+  writeBatch
 } from 'firebase/firestore';
 
 import { INITIAL_CATEGORIES, INITIAL_PEOPLE, INITIAL_MATTERS } from './initial-data.js';
+
+// --- ORDEN DE CATEGORÍAS FIJO ---
+const CATEGORY_ORDER = INITIAL_CATEGORIES.map(c => c.id);
 
 // --- ESTADO DE LA APLICACIÓN ---
 let state = {
   currentMode: 'view', // 'view' o 'edit'
   activeTab: 'people', // 'people' o 'matters'
-  activeCategoryId: 'especiales',
   categories: [],
   people: [],
   matters: [],
   selectedPerson: null, // Persona abierta en el Side-Peek
   searchQuery: '',
+  collapsedCategories: {}, // { categoryId: boolean } (true = colapsada)
 };
 
 // --- ELEMENTOS DEL DOM ---
 const DOM = {
   sidebarToggle: document.getElementById('sidebar-toggle'),
+  sidebarBackdrop: document.getElementById('sidebar-backdrop'),
   appSidebar: document.getElementById('app-sidebar'),
   categoriesList: document.getElementById('categories-list'),
   btnAddCategory: document.getElementById('btn-add-category'),
   
-  activeCategoryTitle: document.getElementById('active-category-title'),
-  activeCategoryBadge: document.getElementById('active-category-badge'),
+  mainAppTitle: document.getElementById('main-app-title'),
   
   modeView: document.getElementById('mode-view'),
   modeEdit: document.getElementById('mode-edit'),
@@ -51,9 +53,8 @@ const DOM = {
   btnAddPerson: document.getElementById('btn-add-person'),
   btnAddMatter: document.getElementById('btn-add-matter'),
   
-  peopleGrid: document.getElementById('people-grid'),
+  categoriesContainer: document.getElementById('categories-container'),
   peopleEmpty: document.getElementById('people-empty'),
-  btnEmptyAddPerson: document.getElementById('btn-empty-add-person'),
   
   mattersList: document.getElementById('matters-list'),
   mattersEmpty: document.getElementById('matters-empty'),
@@ -99,7 +100,7 @@ const DOM = {
   btnCloseMatterModal: document.getElementById('btn-close-matter-modal'),
 };
 
-// Variable para controlar qué categoría se está editando en el modal
+// Variables para modales
 let editingCategoryId = null;
 let editingMatterId = null;
 
@@ -108,7 +109,7 @@ async function init() {
   setAppMode('view');
   setupEventListeners();
   
-  // 1. Verificar si la base de datos está vacía y auto-importar si es necesario
+  // Verificar si la base de datos está vacía para auto-importar
   const catsSnap = await getDocs(collection(db, 'categories'));
   if (catsSnap.empty) {
     console.log("Base de datos vacía. Precargando listas iniciales de forma automática...");
@@ -121,27 +122,57 @@ async function init() {
 // --- CONEXIÓN A FIRESTORE EN TIEMPO REAL ---
 function loadRealtimeData() {
   // 1. Escuchar Categorías
-  const categoriesQuery = query(collection(db, 'categories'), orderBy('name'));
+  const categoriesQuery = query(collection(db, 'categories'));
   onSnapshot(categoriesQuery, (snapshot) => {
     state.categories = [];
     snapshot.forEach((doc) => {
       state.categories.push({ id: doc.id, ...doc.data() });
     });
     
-    // Si la categoría activa no existe, poner la primera
-    if (state.categories.length > 0 && !state.categories.some(c => c.id === state.activeCategoryId)) {
-      state.activeCategoryId = state.categories[0].id;
-    }
+    // Ordenar según el orden inicial establecido
+    state.categories.sort((a, b) => {
+      const indexA = CATEGORY_ORDER.indexOf(a.id);
+      const indexB = CATEGORY_ORDER.indexOf(b.id);
+      
+      // Si son categorías nuevas creadas por el usuario, se colocan al final por orden de creación
+      if (indexA === -1 && indexB === -1) return a.name.localeCompare(b.name);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      
+      return indexA - indexB;
+    });
     
-    renderCategories();
-    renderActiveCategoryHeader();
+    renderCategoriesSidebar();
     updateCategorySelectOptions();
-    
-    // Escuchar personas de la categoría activa (recargar si cambia la activa)
-    setupPeopleListener();
+    renderPeople();
   });
 
-  // 2. Escuchar Asuntos
+  // 2. Escuchar Personas (Toda la colección)
+  const peopleQuery = query(collection(db, 'people'));
+  onSnapshot(peopleQuery, (snapshot) => {
+    state.people = [];
+    snapshot.forEach((doc) => {
+      state.people.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // Ordenar personas alfabéticamente
+    state.people.sort((a, b) => a.name.localeCompare(b.name));
+    
+    renderPeople();
+    
+    // Actualizar side-peek si está abierto
+    if (state.selectedPerson) {
+      const updatedPerson = state.people.find(p => p.id === state.selectedPerson.id);
+      if (updatedPerson) {
+        state.selectedPerson = updatedPerson;
+        updateSidePeekUI();
+      } else {
+        closeSidePeek();
+      }
+    }
+  });
+
+  // 3. Escuchar Asuntos
   const mattersQuery = query(collection(db, 'matters'), orderBy('createdAt', 'desc'));
   onSnapshot(mattersQuery, (snapshot) => {
     state.matters = [];
@@ -149,41 +180,6 @@ function loadRealtimeData() {
       state.matters.push({ id: doc.id, ...doc.data() });
     });
     renderMatters();
-  });
-}
-
-let unsubscribePeople = null;
-function setupPeopleListener() {
-  if (unsubscribePeople) unsubscribePeople();
-  
-  if (!state.activeCategoryId) return;
-  
-  const peopleQuery = query(
-    collection(db, 'people'),
-    where('category', '==', state.activeCategoryId)
-  );
-  
-  unsubscribePeople = onSnapshot(peopleQuery, (snapshot) => {
-    state.people = [];
-    snapshot.forEach((doc) => {
-      state.people.push({ id: doc.id, ...doc.data() });
-    });
-    
-    // Ordenar localmente por nombre para evitar índices compuestos iniciales complejos
-    state.people.sort((a, b) => a.name.localeCompare(b.name));
-    
-    renderPeople();
-    
-    // Actualizar side-peek si la persona seleccionada cambió
-    if (state.selectedPerson) {
-      const updatedPerson = state.people.find(p => p.id === state.selectedPerson.id);
-      if (updatedPerson) {
-        state.selectedPerson = updatedPerson;
-        updateSidePeekUI();
-      } else {
-        closeSidePeek(); // Si fue borrada
-      }
-    }
   });
 }
 
@@ -201,7 +197,7 @@ async function importInitialData() {
       });
     });
     
-    // 2. Importar Personas (Firestore limita a 500 escrituras por batch, tenemos ~150 personas + 17 categorías, cabe en un batch)
+    // 2. Importar Personas
     INITIAL_PEOPLE.forEach((person) => {
       const personRef = doc(collection(db, 'people'));
       batch.set(personRef, {
@@ -233,16 +229,15 @@ async function importInitialData() {
 
 // --- RENDERIZADORES DE INTERFAZ ---
 
-// 1. Renderizar Sidebar de Categorías
-function renderCategories() {
+// 1. Renderizar Categorías en Sidebar (Enlaces de navegación rápida)
+function renderCategoriesSidebar() {
   DOM.categoriesList.innerHTML = '';
   
   state.categories.forEach((cat) => {
     const li = document.createElement('li');
-    const isActive = cat.id === state.activeCategoryId;
     
     li.innerHTML = `
-      <button class="menu-item ${isActive ? 'active' : ''}" data-id="${cat.id}">
+      <button class="menu-item" data-id="${cat.id}">
         <div class="menu-item-left">
           <span class="menu-color-indicator" style="background-color: var(--tag-${cat.color}-txt)"></span>
           <span>${cat.name}</span>
@@ -257,94 +252,160 @@ function renderCategories() {
     
     const btn = li.querySelector('.menu-item');
     btn.addEventListener('click', (e) => {
-      // Si se hizo click en el botón de edición de la categoría
       if (e.target.closest('.menu-item-edit')) {
         e.stopPropagation();
         openCategoryModal(cat.id);
         return;
       }
-      setActiveCategory(cat.id);
       
-      // Cerrar sidebar en móvil tras seleccionar
-      if (window.innerWidth <= 768) {
-        DOM.appSidebar.classList.remove('active');
-      }
+      // Ir a la sección y expandirla
+      scrollToCategorySection(cat.id);
+      closeMobileSidebar();
     });
     
     DOM.categoriesList.appendChild(li);
   });
   
-  // Actualizar visibilidad de elementos según el modo actual
   applyModeVisibility();
 }
 
-// 2. Renderizar Cabecera de Categoría Activa
-function renderActiveCategoryHeader() {
-  const activeCat = state.categories.find(c => c.id === state.activeCategoryId);
-  if (activeCat) {
-    DOM.activeCategoryTitle.textContent = activeCat.name;
-    DOM.activeCategoryBadge.className = `badge ${activeCat.color}`;
-    DOM.activeCategoryBadge.textContent = activeCat.color;
-  } else {
-    DOM.activeCategoryTitle.textContent = 'Selecciona una categoría';
-    DOM.activeCategoryBadge.className = 'badge hidden';
+// Desplazarse suavemente a una categoría y expandirla si está colapsada
+function scrollToCategorySection(categoryId) {
+  setActiveTab('people');
+  
+  const section = document.getElementById(`category-sec-${categoryId}`);
+  if (section) {
+    // Si estaba colapsada, expandirla
+    if (state.collapsedCategories[categoryId]) {
+      state.collapsedCategories[categoryId] = false;
+      section.classList.remove('collapsed');
+      const arrow = section.querySelector('.category-arrow svg');
+      if (arrow) arrow.style.transform = '';
+    }
+    
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
 
-// 3. Renderizar Personas
+// 2. Renderizar Lista Unificada de Personas agrupadas por Categorías
 function renderPeople() {
-  DOM.peopleGrid.innerHTML = '';
+  DOM.categoriesContainer.innerHTML = '';
   
-  const filteredPeople = state.people.filter(person => 
-    person.name.toLowerCase().includes(state.searchQuery.toLowerCase())
-  );
-  
-  if (filteredPeople.length === 0) {
+  if (state.categories.length === 0) {
     DOM.peopleEmpty.classList.remove('hidden');
-    DOM.peopleGrid.classList.add('hidden');
+    DOM.categoriesContainer.classList.add('hidden');
     return;
   }
   
   DOM.peopleEmpty.classList.add('hidden');
-  DOM.peopleGrid.classList.remove('hidden');
+  DOM.categoriesContainer.classList.remove('hidden');
   
-  filteredPeople.forEach((person) => {
-    const card = document.createElement('article');
-    card.className = 'person-card';
+  let totalRendered = 0;
+  
+  state.categories.forEach((cat) => {
+    // Filtrar personas de esta categoría y por la búsqueda
+    const catPeople = state.people.filter(person => 
+      person.category === cat.id &&
+      person.name.toLowerCase().includes(state.searchQuery.toLowerCase())
+    );
     
-    const activePrayers = person.prayers ? person.prayers.filter(p => p.status === 'active').length : 0;
+    // Si estamos buscando y la categoría no tiene resultados, no la renderizamos
+    if (state.searchQuery && catPeople.length === 0) return;
     
-    card.innerHTML = `
-      <div class="person-card-header">
-        <h3 class="person-name">${person.name}</h3>
-      </div>
-      <div class="person-card-prayers">
-        <span>🙏</span>
-        <span>${activePrayers} ${activePrayers === 1 ? 'petición activa' : 'peticiones activas'}</span>
-      </div>
-      <div class="card-actions edit-element hidden">
-        <button class="btn-card-action delete" data-id="${person.id}" title="Eliminar persona">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>
-        </button>
+    totalRendered += catPeople.length;
+    
+    const section = document.createElement('section');
+    const isCollapsed = !!state.collapsedCategories[cat.id];
+    section.id = `category-sec-${cat.id}`;
+    section.className = `category-section ${isCollapsed ? 'collapsed' : ''}`;
+    
+    section.innerHTML = `
+      <button class="category-header-toggle" data-id="${cat.id}">
+        <span class="category-arrow">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="transform: ${isCollapsed ? 'rotate(-90deg)' : 'none'}; transition: transform var(--t-fast);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </span>
+        <span class="badge ${cat.color}">${cat.name}</span>
+        <span class="menu-item-count" style="margin-left: 4px;">${catPeople.length}</span>
+      </button>
+      
+      <div class="cards-grid">
+        <!-- Renderizado de las tarjetas de personas -->
       </div>
     `;
     
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('.btn-card-action.delete')) {
-        e.stopPropagation();
-        deletePerson(person.id);
-        return;
+    // Evento de Contraer/Expandir
+    const toggleBtn = section.querySelector('.category-header-toggle');
+    toggleBtn.addEventListener('click', () => {
+      const currentlyCollapsed = !state.collapsedCategories[cat.id];
+      state.collapsedCategories[cat.id] = currentlyCollapsed;
+      
+      if (currentlyCollapsed) {
+        section.classList.add('collapsed');
+        section.querySelector('.category-arrow svg').style.transform = 'rotate(-90deg)';
+      } else {
+        section.classList.remove('collapsed');
+        section.querySelector('.category-arrow svg').style.transform = 'none';
       }
-      openSidePeek(person);
     });
     
-    DOM.peopleGrid.appendChild(card);
+    // Renderizar tarjetas de la categoría
+    const grid = section.querySelector('.cards-grid');
+    if (catPeople.length === 0) {
+      grid.innerHTML = `<div style="grid-column: 1/-1; padding: 12px; font-size: 13px; color: var(--text-secondary);">No hay nadie en esta categoría.</div>`;
+    } else {
+      catPeople.forEach((person) => {
+        const card = document.createElement('article');
+        card.className = 'person-card';
+        
+        // Obtener peticiones activas
+        const activePrayers = person.prayers ? person.prayers.filter(p => p.status === 'active') : [];
+        
+        let prayersHtml = '';
+        if (activePrayers.length > 0) {
+          prayersHtml = `<div class="person-card-prayers">`;
+          activePrayers.forEach((p) => {
+            prayersHtml += `<span class="small-prayer-bullet" title="${p.text}">• ${p.text}</span>`;
+          });
+          prayersHtml += `</div>`;
+        }
+        
+        card.innerHTML = `
+          <div class="person-card-header">
+            <h3 class="person-name">${person.name}</h3>
+          </div>
+          ${prayersHtml}
+          <div class="card-actions edit-element hidden">
+            <button class="btn-card-action delete" data-id="${person.id}" title="Eliminar persona">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>
+            </button>
+          </div>
+        `;
+        
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-card-action.delete')) {
+            e.stopPropagation();
+            deletePerson(person.id);
+            return;
+          }
+          openSidePeek(person);
+        });
+        
+        grid.appendChild(card);
+      });
+    }
+    
+    DOM.categoriesContainer.appendChild(section);
   });
+  
+  // Si estamos buscando y no hay resultados globales
+  if (state.searchQuery && totalRendered === 0) {
+    DOM.categoriesContainer.innerHTML = `<div class="empty-state"><p>No se encontraron oraciones para "${state.searchQuery}"</p></div>`;
+  }
   
   applyModeVisibility();
 }
 
-// 4. Renderizar Asuntos Pendientes
+// 3. Renderizar Asuntos Pendientes
 function renderMatters() {
   DOM.mattersList.innerHTML = '';
   
@@ -418,10 +479,8 @@ function openSidePeek(person) {
   // Llenar datos en UI
   DOM.peekPersonName.textContent = person.name;
   DOM.editPersonName.value = person.name;
-  
   DOM.editPersonCategory.value = person.category;
   
-  // Badge de categoría estático
   const cat = state.categories.find(c => c.id === person.category);
   if (cat) {
     DOM.peekPersonCategory.innerHTML = `<span class="badge ${cat.color}">${cat.name}</span>`;
@@ -431,7 +490,6 @@ function openSidePeek(person) {
   
   updateSidePeekUI();
   
-  // Activar Side-Peek
   DOM.sideOverlay.classList.add('active');
   DOM.sidePeek.classList.add('active');
 }
@@ -450,11 +508,9 @@ function updateSidePeekUI() {
   const activePrayers = prayers.filter(p => p.status === 'active');
   const answeredPrayers = prayers.filter(p => p.status === 'answered');
   
-  // Actualizar contadores
   DOM.prayersCount.textContent = `${activePrayers.length} ${activePrayers.length === 1 ? 'activa' : 'activas'}`;
   DOM.answeredCount.textContent = answeredPrayers.length;
   
-  // Mostrar sección respondidas solo si hay
   if (answeredPrayers.length > 0) {
     DOM.answeredPrayersContainer.classList.remove('hidden');
   } else {
@@ -477,12 +533,10 @@ function updateSidePeekUI() {
         </button>
       `;
       
-      // Listener de Checkbox
       li.querySelector('input').addEventListener('change', () => {
         togglePrayerStatus(state.selectedPerson.id, p.id, true);
       });
       
-      // Listener de Delete
       const btnDel = li.querySelector('.btn-delete-prayer');
       btnDel.addEventListener('click', () => {
         deletePrayer(state.selectedPerson.id, p.id);
@@ -492,7 +546,7 @@ function updateSidePeekUI() {
     });
   }
   
-  // Renderizar Respondidas (Archivo)
+  // Renderizar Respondidas
   DOM.answeredPrayersList.innerHTML = '';
   answeredPrayers.forEach((p) => {
     const li = document.createElement('li');
@@ -505,12 +559,10 @@ function updateSidePeekUI() {
       </button>
     `;
     
-    // Listener de Checkbox (Desmarcar)
     li.querySelector('input').addEventListener('change', () => {
       togglePrayerStatus(state.selectedPerson.id, p.id, false);
     });
     
-    // Listener de Delete
     const btnDel = li.querySelector('.btn-delete-prayer');
     btnDel.addEventListener('click', () => {
       deletePrayer(state.selectedPerson.id, p.id);
@@ -522,7 +574,6 @@ function updateSidePeekUI() {
   applyModeVisibility();
 }
 
-// Actualizar lista de categorías en el selector de Side Peek
 function updateCategorySelectOptions() {
   DOM.editPersonCategory.innerHTML = '';
   state.categories.forEach((cat) => {
@@ -533,9 +584,8 @@ function updateCategorySelectOptions() {
   });
 }
 
-// --- GESTIÓN DE ACCIONES DE FIRESTORE ---
+// --- ACCIONES DE FIRESTORE ---
 
-// 1. Modificar estado de un asunto (Completado/Pendiente)
 async function toggleMatterStatus(id, checked) {
   try {
     await updateDoc(doc(db, 'matters', id), {
@@ -546,7 +596,6 @@ async function toggleMatterStatus(id, checked) {
   }
 }
 
-// 2. Modificar estado de una petición de oración (Respondida/Activa)
 async function togglePrayerStatus(personId, prayerId, makeAnswered) {
   if (!state.selectedPerson) return;
   
@@ -562,7 +611,6 @@ async function togglePrayerStatus(personId, prayerId, makeAnswered) {
   }
 }
 
-// 3. Añadir nueva petición de oración a una persona
 async function addNewPrayer() {
   const text = DOM.newPrayerInput.value.trim();
   if (!text || !state.selectedPerson) return;
@@ -584,7 +632,6 @@ async function addNewPrayer() {
   }
 }
 
-// 4. Eliminar petición de oración de una persona
 async function deletePrayer(personId, prayerId) {
   if (!state.selectedPerson) return;
   
@@ -597,26 +644,26 @@ async function deletePrayer(personId, prayerId) {
   }
 }
 
-// 5. Añadir nueva persona
+// Añadir nueva persona
 async function addPerson() {
-  if (!state.activeCategoryId) return;
-  
   const name = prompt("Nombre de la persona por la que rezar:");
   if (!name || !name.trim()) return;
+  
+  // Asignar por defecto a la primera categoría disponible
+  const defaultCategory = state.categories.length > 0 ? state.categories[0].id : 'especiales';
   
   try {
     const docRef = await addDoc(collection(db, 'people'), {
       name: name.trim(),
-      category: state.activeCategoryId,
+      category: defaultCategory,
       prayers: [],
       createdAt: new Date()
     });
     
-    // Abrir Side Peek inmediatamente de la persona creada
     const newPerson = {
       id: docRef.id,
       name: name.trim(),
-      category: state.activeCategoryId,
+      category: defaultCategory,
       prayers: []
     };
     openSidePeek(newPerson);
@@ -625,7 +672,6 @@ async function addPerson() {
   }
 }
 
-// 6. Guardar cambios en persona (Edición inline del side-peek)
 async function savePersonChanges() {
   if (!state.selectedPerson) return;
   
@@ -639,17 +685,11 @@ async function savePersonChanges() {
       name: newName,
       category: newCat
     });
-    
-    // Si cambió la categoría y ya no está en la activa, cerramos el panel
-    if (newCat !== state.activeCategoryId) {
-      closeSidePeek();
-    }
   } catch (error) {
     console.error("Error guardando cambios del contacto:", error);
   }
 }
 
-// 7. Eliminar Persona
 async function deletePerson(id) {
   const confirmDel = confirm("¿Seguro que deseas eliminar a esta persona de la lista?");
   if (!confirmDel) return;
@@ -664,7 +704,7 @@ async function deletePerson(id) {
   }
 }
 
-// 8. Crear / Editar Categoría
+// Crear / Editar Categoría
 async function saveCategory() {
   const name = DOM.categoryNameInput.value.trim();
   const selectedDot = DOM.colorPickerGrid.querySelector('.color-dot.active');
@@ -674,12 +714,9 @@ async function saveCategory() {
   
   try {
     if (editingCategoryId) {
-      // Editar
       await updateDoc(doc(db, 'categories', editingCategoryId), { name, color });
     } else {
-      // Crear nueva
-      const docRef = await addDoc(collection(db, 'categories'), { name, color });
-      state.activeCategoryId = docRef.id;
+      await addDoc(collection(db, 'categories'), { name, color });
     }
     closeCategoryModal();
   } catch (error) {
@@ -687,7 +724,6 @@ async function saveCategory() {
   }
 }
 
-// 9. Eliminar Categoría
 async function deleteCategory() {
   if (!editingCategoryId) return;
   
@@ -695,7 +731,6 @@ async function deleteCategory() {
   if (!confirmDel) return;
   
   try {
-    // 1. Quitar la categoría a los miembros
     const q = query(collection(db, 'people'), where('category', '==', editingCategoryId));
     const snap = await getDocs(q);
     const batch = writeBatch(db);
@@ -704,16 +739,14 @@ async function deleteCategory() {
     });
     await batch.commit();
     
-    // 2. Eliminar la categoría
     await deleteDoc(doc(db, 'categories', editingCategoryId));
-    
     closeCategoryModal();
   } catch (error) {
     console.error("Error eliminando categoría:", error);
   }
 }
 
-// 10. Guardar Asunto
+// Guardar Asunto
 async function saveMatter() {
   const title = DOM.matterTitleInput.value.trim();
   const description = DOM.matterDescInput.value.trim();
@@ -723,14 +756,12 @@ async function saveMatter() {
   
   try {
     if (editingMatterId) {
-      // Editar
       await updateDoc(doc(db, 'matters', editingMatterId), {
         title,
         description,
         category
       });
     } else {
-      // Crear
       await addDoc(collection(db, 'matters'), {
         title,
         description,
@@ -745,7 +776,6 @@ async function saveMatter() {
   }
 }
 
-// 11. Eliminar Asunto
 async function deleteMatter(id) {
   const confirmDel = confirm("¿Seguro que quieres eliminar este asunto?");
   if (!confirmDel) return;
@@ -758,13 +788,12 @@ async function deleteMatter(id) {
   }
 }
 
-// --- MODALES (Show/Hide) ---
+// --- MODALES ---
 
 function openCategoryModal(catId = null) {
   editingCategoryId = catId;
   
   if (catId) {
-    // Editar
     DOM.modalCategoryTitle.textContent = "Editar Categoría";
     DOM.btnDeleteCategory.classList.remove('hidden');
     
@@ -780,7 +809,6 @@ function openCategoryModal(catId = null) {
       });
     }
   } else {
-    // Nuevo
     DOM.modalCategoryTitle.textContent = "Nueva Categoría";
     DOM.btnDeleteCategory.classList.add('hidden');
     DOM.categoryNameInput.value = '';
@@ -801,7 +829,6 @@ function closeCategoryModal() {
 
 function openMatterModal(matter = null) {
   if (matter) {
-    // Editar
     editingMatterId = matter.id;
     DOM.modalMatterTitle.textContent = "Editar Asunto";
     DOM.btnDeleteMatter.classList.remove('hidden');
@@ -809,7 +836,6 @@ function openMatterModal(matter = null) {
     DOM.matterDescInput.value = matter.description || '';
     DOM.matterCatInput.value = matter.category || '';
   } else {
-    // Crear
     editingMatterId = null;
     DOM.modalMatterTitle.textContent = "Nuevo Asunto";
     DOM.btnDeleteMatter.classList.add('hidden');
@@ -829,22 +855,6 @@ function closeMatterModal() {
 
 // --- NAVEGACIÓN Y CONFIGURACIÓN ---
 
-function setActiveCategory(catId) {
-  state.activeCategoryId = catId;
-  
-  // Cambiar selección en sidebar
-  DOM.categoriesList.querySelectorAll('.menu-item').forEach((btn) => {
-    if (btn.getAttribute('data-id') === catId) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-  
-  renderActiveCategoryHeader();
-  setupPeopleListener();
-}
-
 function setActiveTab(tab) {
   state.activeTab = tab;
   
@@ -855,6 +865,7 @@ function setActiveTab(tab) {
     DOM.mattersSection.classList.remove('active');
     DOM.btnAddPerson.classList.remove('hidden');
     DOM.btnAddMatter.classList.add('hidden');
+    DOM.mainAppTitle.textContent = "Oraciones";
   } else {
     DOM.tabPeople.classList.remove('active');
     DOM.tabMatters.classList.add('active');
@@ -862,9 +873,9 @@ function setActiveTab(tab) {
     DOM.mattersSection.classList.add('active');
     DOM.btnAddPerson.classList.add('hidden');
     DOM.btnAddMatter.classList.remove('hidden');
+    DOM.mainAppTitle.textContent = "Asuntos Pendientes";
   }
   
-  // Limpiar buscador
   DOM.searchInput.value = '';
   state.searchQuery = '';
 }
@@ -884,13 +895,11 @@ function setAppMode(mode) {
   
   applyModeVisibility();
   
-  // Actualizar también side-peek
   if (state.selectedPerson) {
     updateSidePeekUI();
   }
 }
 
-// Mostrar/Ocultar elementos según el modo
 function applyModeVisibility() {
   const isView = state.currentMode === 'view';
   
@@ -905,16 +914,32 @@ function applyModeVisibility() {
   });
 }
 
+// Cerrar sidebar móvil
+function closeMobileSidebar() {
+  DOM.appSidebar.classList.remove('active');
+  DOM.sidebarBackdrop.classList.remove('active');
+}
+
 // --- MANEJADORES DE EVENTOS ---
 function setupEventListeners() {
-  // Sidebar móvil
+  // Toggle Sidebar en móvil
   DOM.sidebarToggle.addEventListener('click', () => {
-    DOM.appSidebar.classList.toggle('active');
+    DOM.appSidebar.classList.add('active');
+    DOM.sidebarBackdrop.classList.add('active');
   });
   
-  // Tabs
-  DOM.tabPeople.addEventListener('click', () => setActiveTab('people'));
-  DOM.tabMatters.addEventListener('click', () => setActiveTab('matters'));
+  // Cerrar sidebar al hacer click en el backdrop
+  DOM.sidebarBackdrop.addEventListener('click', closeMobileSidebar);
+  
+  // Tabs en la barra lateral
+  DOM.tabPeople.addEventListener('click', () => {
+    setActiveTab('people');
+    closeMobileSidebar();
+  });
+  DOM.tabMatters.addEventListener('click', () => {
+    setActiveTab('matters');
+    closeMobileSidebar();
+  });
   
   // Selector de Modo
   DOM.modeView.addEventListener('click', () => setAppMode('view'));
@@ -929,8 +954,6 @@ function setupEventListeners() {
   
   // Añadir personas y asuntos
   DOM.btnAddPerson.addEventListener('click', addPerson);
-  DOM.btnEmptyAddPerson.addEventListener('click', addPerson);
-  
   DOM.btnAddMatter.addEventListener('click', () => openMatterModal());
   DOM.btnEmptyAddMatter.addEventListener('click', () => openMatterModal());
   
@@ -947,7 +970,7 @@ function setupEventListeners() {
   DOM.btnSaveMatter.addEventListener('click', saveMatter);
   DOM.btnDeleteMatter.addEventListener('click', () => deleteMatter(editingMatterId));
   
-  // Color Picker para categoría
+  // Color Picker
   DOM.colorPickerGrid.addEventListener('click', (e) => {
     const dot = e.target.closest('.color-dot');
     if (dot) {
@@ -971,7 +994,7 @@ function setupEventListeners() {
     if (e.key === 'Enter') addNewPrayer();
   });
   
-  // Escuchar inputs editables en side-peek (se guardan al perder foco)
+  // Guardar cambios al perder foco
   DOM.editPersonName.addEventListener('blur', savePersonChanges);
   DOM.editPersonCategory.addEventListener('change', savePersonChanges);
   DOM.btnDeletePerson.addEventListener('click', () => {
@@ -979,5 +1002,5 @@ function setupEventListeners() {
   });
 }
 
-// Iniciar app
+// Iniciar
 init();
