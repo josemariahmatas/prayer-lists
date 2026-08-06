@@ -1434,33 +1434,105 @@ body.dark-theme {
   --tag-grey-bg: #2d2d2d;   --tag-grey-txt: #d4d4d4;
 }
 
-/* Sidebar Footer and Theme Toggle */
+/* Sidebar Footer and Settings Panel */
 .sidebar-footer {
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-top: 1px solid var(--border-color);
   background-color: var(--bg-sidebar);
 }
 
-.theme-toggle-btn {
+.settings-panel {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   gap: 8px;
   width: 100%;
-  padding: 6px 12px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
-  font-family: var(--font-main);
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color var(--t-fast);
 }
 
-.theme-toggle-btn:hover {
-  background-color: var(--bg-hover);
+.settings-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.settings-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.settings-options {
+  display: flex;
+  background-color: rgba(55, 53, 47, 0.05);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+body.dark-theme .settings-options {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.settings-btn {
+  border: none;
+  background: transparent;
+  padding: 3px 8px;
+  font-family: var(--font-main);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.settings-btn:hover {
+  color: var(--text-main);
+}
+
+.settings-btn.active {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Layout overrides for body classes */
+body.layout-1-col-active .cards-grid {
+  grid-template-columns: 1fr !important;
+  gap: 6px !important;
+}
+
+body.layout-1-col-active .person-card {
+  padding: 10px 14px !important;
+}
+
+body.layout-1-col-active .person-name {
+  font-size: 14.5px !important;
+  -webkit-line-clamp: unset !important;
+}
+
+body.layout-1-col-active .person-card-prayers {
+  font-size: 11.5px !important;
+  margin-top: 8px !important;
+  padding-top: 6px !important;
+}
+
+body.layout-1-col-active .small-prayer-bullet {
+  font-size: 11px !important;
+  white-space: normal !important;
+}
+
+body.layout-2-col-active .cards-grid {
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 8px !important;
 }
 
 /* Drag & Drop Visual Classes */
