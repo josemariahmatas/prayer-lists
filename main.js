@@ -37,6 +37,7 @@ const DOM = {
   appSidebar: document.getElementById('app-sidebar'),
   categoriesList: document.getElementById('categories-list'),
   btnAddCategory: document.getElementById('btn-add-category'),
+  btnToggleTheme: document.getElementById('btn-toggle-theme'),
   
   mainAppTitle: document.getElementById('main-app-title'),
   
@@ -108,6 +109,7 @@ let editingMatterId = null;
 async function init() {
   setAppMode('view');
   setupEventListeners();
+  initTheme();
   
   // Verificar si la base de datos está vacía para auto-importar
   const catsSnap = await getDocs(collection(db, 'categories'));
@@ -116,6 +118,41 @@ async function init() {
     await importInitialData();
   } else {
     loadRealtimeData();
+  }
+}
+
+// --- TEMA CLARO / OSCURO ---
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+    document.body.classList.add('dark-theme');
+    document.body.classList.remove('light-theme');
+    DOM.btnToggleTheme.querySelector('.theme-icon').textContent = '☀️';
+    DOM.btnToggleTheme.querySelector('.theme-text').textContent = 'Modo Claro';
+  } else {
+    document.body.classList.add('light-theme');
+    document.body.classList.remove('dark-theme');
+    DOM.btnToggleTheme.querySelector('.theme-icon').textContent = '🌙';
+    DOM.btnToggleTheme.querySelector('.theme-text').textContent = 'Modo Oscuro';
+  }
+}
+
+function toggleTheme() {
+  const isDark = document.body.classList.contains('dark-theme');
+  if (isDark) {
+    document.body.classList.remove('dark-theme');
+    document.body.classList.add('light-theme');
+    localStorage.setItem('theme', 'light');
+    DOM.btnToggleTheme.querySelector('.theme-icon').textContent = '🌙';
+    DOM.btnToggleTheme.querySelector('.theme-text').textContent = 'Modo Oscuro';
+  } else {
+    document.body.classList.remove('light-theme');
+    document.body.classList.add('dark-theme');
+    localStorage.setItem('theme', 'dark');
+    DOM.btnToggleTheme.querySelector('.theme-icon').textContent = '☀️';
+    DOM.btnToggleTheme.querySelector('.theme-text').textContent = 'Modo Claro';
   }
 }
 
@@ -134,7 +171,6 @@ function loadRealtimeData() {
       const indexA = CATEGORY_ORDER.indexOf(a.id);
       const indexB = CATEGORY_ORDER.indexOf(b.id);
       
-      // Si son categorías nuevas creadas por el usuario, se colocan al final por orden de creación
       if (indexA === -1 && indexB === -1) return a.name.localeCompare(b.name);
       if (indexA === -1) return 1;
       if (indexB === -1) return -1;
@@ -155,8 +191,16 @@ function loadRealtimeData() {
       state.people.push({ id: doc.id, ...doc.data() });
     });
     
-    // Ordenar personas alfabéticamente
-    state.people.sort((a, b) => a.name.localeCompare(b.name));
+    // Ordenar por orden establecido por drag&drop; si no tienen, por nombre
+    state.people.sort((a, b) => {
+      const orderA = a.order !== undefined ? a.order : 0;
+      const orderB = b.order !== undefined ? b.order : 0;
+      
+      if (orderA === orderB) {
+        return a.name.localeCompare(b.name);
+      }
+      return orderA - orderB;
+    });
     
     renderPeople();
     
@@ -197,13 +241,14 @@ async function importInitialData() {
       });
     });
     
-    // 2. Importar Personas
-    INITIAL_PEOPLE.forEach((person) => {
+    // 2. Importar Personas (ordenadas inicialmente por su índice en la lista)
+    INITIAL_PEOPLE.forEach((person, index) => {
       const personRef = doc(collection(db, 'people'));
       batch.set(personRef, {
         name: person.name,
         category: person.category,
         prayers: person.prayers,
+        order: index,
         createdAt: new Date()
       });
     });
@@ -258,7 +303,6 @@ function renderCategoriesSidebar() {
         return;
       }
       
-      // Ir a la sección y expandirla
       scrollToCategorySection(cat.id);
       closeMobileSidebar();
     });
@@ -269,13 +313,11 @@ function renderCategoriesSidebar() {
   applyModeVisibility();
 }
 
-// Desplazarse suavemente a una categoría y expandirla si está colapsada
 function scrollToCategorySection(categoryId) {
   setActiveTab('people');
   
   const section = document.getElementById(`category-sec-${categoryId}`);
   if (section) {
-    // Si estaba colapsada, expandirla
     if (state.collapsedCategories[categoryId]) {
       state.collapsedCategories[categoryId] = false;
       section.classList.remove('collapsed');
@@ -303,13 +345,11 @@ function renderPeople() {
   let totalRendered = 0;
   
   state.categories.forEach((cat) => {
-    // Filtrar personas de esta categoría y por la búsqueda
     const catPeople = state.people.filter(person => 
       person.category === cat.id &&
       person.name.toLowerCase().includes(state.searchQuery.toLowerCase())
     );
     
-    // Si estamos buscando y la categoría no tiene resultados, no la renderizamos
     if (state.searchQuery && catPeople.length === 0) return;
     
     totalRendered += catPeople.length;
@@ -328,12 +368,12 @@ function renderPeople() {
         <span class="menu-item-count" style="margin-left: 4px;">${catPeople.length}</span>
       </button>
       
-      <div class="cards-grid">
+      <div class="cards-grid" data-category-id="${cat.id}">
         <!-- Renderizado de las tarjetas de personas -->
       </div>
     `;
     
-    // Evento de Contraer/Expandir
+    // Toggle colapsar
     const toggleBtn = section.querySelector('.category-header-toggle');
     toggleBtn.addEventListener('click', () => {
       const currentlyCollapsed = !state.collapsedCategories[cat.id];
@@ -348,16 +388,63 @@ function renderPeople() {
       }
     });
     
-    // Renderizar tarjetas de la categoría
+    // Drag & Drop a nivel de CONTENEDOR GRID (para arrastrar sobre categorías vacías)
     const grid = section.querySelector('.cards-grid');
+    
+    grid.addEventListener('dragover', (e) => {
+      if (state.currentMode !== 'edit') return;
+      e.preventDefault();
+      grid.classList.add('drag-over');
+    });
+    
+    grid.addEventListener('dragleave', () => {
+      grid.classList.remove('drag-over');
+    });
+    
+    grid.addEventListener('drop', async (e) => {
+      if (state.currentMode !== 'edit') return;
+      e.preventDefault();
+      grid.classList.remove('drag-over');
+      
+      // Si se soltó sobre una card de persona, que lo maneje el listener de la card
+      if (e.target.closest('.person-card')) return;
+      
+      const draggedId = e.dataTransfer.getData('text/plain');
+      const draggedPerson = state.people.find(p => p.id === draggedId);
+      if (!draggedPerson) return;
+      
+      const targetCatId = cat.id;
+      
+      // Si cambia de categoría
+      if (draggedPerson.category !== targetCatId) {
+        const targetCatPeople = state.people.filter(p => p.category === targetCatId);
+        const newOrder = targetCatPeople.length;
+        
+        try {
+          await updateDoc(doc(db, 'people', draggedId), {
+            category: targetCatId,
+            order: newOrder
+          });
+        } catch (err) {
+          console.error("Error al mover persona a otra categoría:", err);
+        }
+      }
+    });
+    
+    // Renderizar tarjetas
     if (catPeople.length === 0) {
       grid.innerHTML = `<div style="grid-column: 1/-1; padding: 12px; font-size: 13px; color: var(--text-secondary);">No hay nadie en esta categoría.</div>`;
     } else {
       catPeople.forEach((person) => {
         const card = document.createElement('article');
         card.className = 'person-card';
+        card.setAttribute('data-id', person.id);
         
-        // Obtener peticiones activas
+        // Habilitar drag only in Edit mode
+        if (state.currentMode === 'edit') {
+          card.setAttribute('draggable', 'true');
+        }
+        
         const activePrayers = person.prayers ? person.prayers.filter(p => p.status === 'active') : [];
         
         let prayersHtml = '';
@@ -381,6 +468,72 @@ function renderPeople() {
           </div>
         `;
         
+        // --- DRAG & DROP LISTENERS A NIVEL DE TARJETA ---
+        card.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', person.id);
+          card.classList.add('dragging');
+        });
+        
+        card.addEventListener('dragend', () => {
+          card.classList.remove('dragging');
+          document.querySelectorAll('.person-card').forEach(c => c.classList.remove('drag-over-before'));
+          document.querySelectorAll('.cards-grid').forEach(g => g.classList.remove('drag-over'));
+        });
+        
+        card.addEventListener('dragover', (e) => {
+          if (state.currentMode !== 'edit') return;
+          e.preventDefault();
+          const draggingCard = document.querySelector('.person-card.dragging');
+          if (draggingCard && draggingCard !== card) {
+            card.classList.add('drag-over-before');
+          }
+        });
+        
+        card.addEventListener('dragleave', () => {
+          card.classList.remove('drag-over-before');
+        });
+        
+        card.addEventListener('drop', async (e) => {
+          if (state.currentMode !== 'edit') return;
+          e.preventDefault();
+          card.classList.remove('drag-over-before');
+          
+          const draggedId = e.dataTransfer.getData('text/plain');
+          const targetId = person.id;
+          
+          if (draggedId === targetId) return;
+          
+          const draggedPerson = state.people.find(p => p.id === draggedId);
+          const targetPerson = state.people.find(p => p.id === targetId);
+          if (!draggedPerson || !targetPerson) return;
+          
+          const targetCatId = targetPerson.category;
+          
+          // Obtener miembros de la categoría destino (excluyendo al que arrastramos si ya estaba ahí)
+          const targetCatPeople = state.people.filter(p => p.category === targetCatId && p.id !== draggedId);
+          
+          // Encontrar índice del target
+          const targetIdx = targetCatPeople.findIndex(p => p.id === targetId);
+          
+          // Insertar en la nueva posición
+          targetCatPeople.splice(targetIdx, 0, draggedPerson);
+          
+          // Guardar orden en batch
+          try {
+            const batch = writeBatch(db);
+            targetCatPeople.forEach((p, idx) => {
+              const personRef = doc(db, 'people', p.id);
+              batch.update(personRef, {
+                order: idx,
+                category: targetCatId
+              });
+            });
+            await batch.commit();
+          } catch (err) {
+            console.error("Error reordenando lista:", err);
+          }
+        });
+        
         card.addEventListener('click', (e) => {
           if (e.target.closest('.btn-card-action.delete')) {
             e.stopPropagation();
@@ -397,7 +550,6 @@ function renderPeople() {
     DOM.categoriesContainer.appendChild(section);
   });
   
-  // Si estamos buscando y no hay resultados globales
   if (state.searchQuery && totalRendered === 0) {
     DOM.categoriesContainer.innerHTML = `<div class="empty-state"><p>No se encontraron oraciones para "${state.searchQuery}"</p></div>`;
   }
@@ -449,13 +601,11 @@ function renderMatters() {
       </div>
     `;
     
-    // Evento de Checkbox
     const checkbox = item.querySelector('.custom-checkbox');
     checkbox.addEventListener('change', (e) => {
       toggleMatterStatus(matter.id, e.target.checked);
     });
     
-    // Eventos de edición/eliminación
     const btnEdit = item.querySelector('.btn-card-action.edit');
     if (btnEdit) {
       btnEdit.addEventListener('click', () => openMatterModal(matter));
@@ -471,12 +621,11 @@ function renderMatters() {
   applyModeVisibility();
 }
 
-// --- GESTIÓN DE SIDE-PEEK (Detalles de Persona) ---
+// --- GESTIÓN DE SIDE-PEEK ---
 
 function openSidePeek(person) {
   state.selectedPerson = person;
   
-  // Llenar datos en UI
   DOM.peekPersonName.textContent = person.name;
   DOM.editPersonName.value = person.name;
   DOM.editPersonCategory.value = person.category;
@@ -644,19 +793,22 @@ async function deletePrayer(personId, prayerId) {
   }
 }
 
-// Añadir nueva persona
 async function addPerson() {
   const name = prompt("Nombre de la persona por la que rezar:");
   if (!name || !name.trim()) return;
   
-  // Asignar por defecto a la primera categoría disponible
   const defaultCategory = state.categories.length > 0 ? state.categories[0].id : 'especiales';
+  
+  // Obtener cantidad de personas de esa categoría para el orden final
+  const currentMembers = state.people.filter(p => p.category === defaultCategory);
+  const nextOrderIndex = currentMembers.length;
   
   try {
     const docRef = await addDoc(collection(db, 'people'), {
       name: name.trim(),
       category: defaultCategory,
       prayers: [],
+      order: nextOrderIndex,
       createdAt: new Date()
     });
     
@@ -681,10 +833,18 @@ async function savePersonChanges() {
   if (!newName) return;
   
   try {
-    await updateDoc(doc(db, 'people', state.selectedPerson.id), {
-      name: newName,
-      category: newCat
-    });
+    const updates = {
+      name: newName
+    };
+    
+    // Si se cambia de categoría, se le asigna el orden final en la nueva categoría
+    if (newCat !== state.selectedPerson.category) {
+      const targetCatPeople = state.people.filter(p => p.category === newCat);
+      updates.category = newCat;
+      updates.order = targetCatPeople.length;
+    }
+    
+    await updateDoc(doc(db, 'people', state.selectedPerson.id), updates);
   } catch (error) {
     console.error("Error guardando cambios del contacto:", error);
   }
@@ -704,7 +864,6 @@ async function deletePerson(id) {
   }
 }
 
-// Crear / Editar Categoría
 async function saveCategory() {
   const name = DOM.categoryNameInput.value.trim();
   const selectedDot = DOM.colorPickerGrid.querySelector('.color-dot.active');
@@ -746,7 +905,6 @@ async function deleteCategory() {
   }
 }
 
-// Guardar Asunto
 async function saveMatter() {
   const title = DOM.matterTitleInput.value.trim();
   const description = DOM.matterDescInput.value.trim();
@@ -893,7 +1051,8 @@ function setAppMode(mode) {
     document.body.className = 'mode-edit-active';
   }
   
-  applyModeVisibility();
+  // Re-renderizar personas para habilitar/deshabilitar draggable en las tarjetas
+  renderPeople();
   
   if (state.selectedPerson) {
     updateSidePeekUI();
@@ -914,7 +1073,6 @@ function applyModeVisibility() {
   });
 }
 
-// Cerrar sidebar móvil
 function closeMobileSidebar() {
   DOM.appSidebar.classList.remove('active');
   DOM.sidebarBackdrop.classList.remove('active');
@@ -930,6 +1088,9 @@ function setupEventListeners() {
   
   // Cerrar sidebar al hacer click en el backdrop
   DOM.sidebarBackdrop.addEventListener('click', closeMobileSidebar);
+  
+  // Botón Toggle Tema
+  DOM.btnToggleTheme.addEventListener('click', toggleTheme);
   
   // Tabs en la barra lateral
   DOM.tabPeople.addEventListener('click', () => {
