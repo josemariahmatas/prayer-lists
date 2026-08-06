@@ -1234,6 +1234,24 @@ function closeCategoryModal() {
 
 // --- NAVEGACIÓN ENTRE TABS ---
 
+function scrollToCategorySection(categoryId) {
+  setActiveTab('people');
+  
+  setTimeout(() => {
+    const section = document.getElementById(`category-sec-${categoryId}`);
+    if (section) {
+      if (state.collapsedCategories[categoryId]) {
+        state.collapsedCategories[categoryId] = false;
+        section.classList.remove('collapsed');
+        const arrow = section.querySelector('.category-arrow svg');
+        if (arrow) arrow.style.transform = 'none';
+      }
+      
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 100);
+}
+
 function setActiveTab(tab) {
   state.activeTab = tab;
   
@@ -1294,6 +1312,8 @@ function setupEventListeners() {
   });
   
   // --- LISTENERS BOTONES AÑADIR RÁPIDO ---
+  DOM.btnAddPerson.addEventListener('click', () => openAddEntryModal('person'));
+  DOM.btnAddMatter.addEventListener('click', () => openAddEntryModal('matter'));
   DOM.btnHeaderAdd.addEventListener('click', () => openAddEntryModal(state.activeTab === 'people' ? 'person' : 'matter'));
   DOM.mobileAddBtn.addEventListener('click', () => openAddEntryModal(state.activeTab === 'people' ? 'person' : 'matter'));
   
