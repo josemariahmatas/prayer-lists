@@ -79,8 +79,8 @@
           <div class="settings-row">
             <span class="settings-label">Disposición</span>
             <div class="settings-options">
-              <button id="layout-1-col" class="settings-btn" title="Lista de 1 Columna">1 Col</button>
-              <button id="layout-2-col" class="settings-btn active" title="Lista de 2 Columnas">2 Cols</button>
+              <button id="layout-1-col" class="settings-btn active" title="Lista de 1 Columna">1 Col</button>
+              <button id="layout-2-col" class="settings-btn" title="Lista de 2 Columnas">2 Cols</button>
             </div>
           </div>
         </div>
@@ -107,43 +107,45 @@
         </div>
       </header>
 
-      <!-- BUSCADOR Y ACCIONES RÁPIDAS -->
-      <section class="controls-section">
-        <div class="search-wrapper">
-          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" id="search-input" placeholder="Buscar personas, intenciones...">
-        </div>
-        
-        <button id="btn-add-person" class="btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          Añadir persona
-        </button>
-        <button id="btn-add-matter" class="btn-primary hidden">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          Añadir asunto
-        </button>
-      </section>
-
-      <!-- VISTA 1: GENTE (Todas las categorías seguidas) -->
-      <section id="people-section" class="tab-content active">
-        <div id="categories-container" class="categories-container">
-          <!-- Se cargan dinámicamente con sus respectivas grids de personas -->
-        </div>
-        <div id="people-empty" class="empty-state hidden">
-          <p>No hay categorías registradas.</p>
-        </div>
-      </section>
-
-      <!-- VISTA 2: ASUNTOS (Matters) -->
-      <section id="matters-section" class="tab-content">
-        <div id="matters-list" class="matters-list">
-          <!-- Se cargan dinámicamente -->
-        </div>
-        <div id="matters-empty" class="empty-state hidden">
-          <p>No hay asuntos pendientes registrados.</p>
-          <button id="btn-empty-add-matter" class="btn-secondary">Añadir primer asunto</button>
-        </div>
-      </section>
+      <div class="main-body">
+        <!-- BUSCADOR Y ACCIONES RÁPIDAS -->
+        <section class="controls-section">
+          <div class="search-wrapper">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="search-input" placeholder="Buscar personas, intenciones...">
+          </div>
+          
+          <button id="btn-add-person" class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Añadir persona
+          </button>
+          <button id="btn-add-matter" class="btn-primary hidden">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Añadir asunto
+          </button>
+        </section>
+  
+        <!-- VISTA 1: GENTE (Todas las categorías seguidas) -->
+        <section id="people-section" class="tab-content active">
+          <div id="categories-container" class="categories-container">
+            <!-- Se cargan dinámicamente con sus respectivas grids de personas -->
+          </div>
+          <div id="people-empty" class="empty-state hidden">
+            <p>No hay categorías registradas.</p>
+          </div>
+        </section>
+  
+        <!-- VISTA 2: ASUNTOS (Matters) -->
+        <section id="matters-section" class="tab-content">
+          <div id="matters-list" class="matters-list">
+            <!-- Se cargan dinámicamente -->
+          </div>
+          <div id="matters-empty" class="empty-state hidden">
+            <p>No hay asuntos pendientes registrados.</p>
+            <button id="btn-empty-add-matter" class="btn-secondary">Añadir primer asunto</button>
+          </div>
+        </section>
+      </div>
       
     </main>
 
@@ -295,6 +297,55 @@
           <div style="flex-grow: 1;"></div>
           <button id="btn-cancel-matter" class="btn-secondary">Cancelar</button>
           <button id="btn-save-matter" class="btn-primary">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Crear/Editar Persona -->
+    <div id="person-modal" class="modal-backdrop hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 id="modal-person-title">Añadir Persona</h3>
+          <button id="btn-close-person-modal" class="btn-icon" title="Cerrar modal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="input-group">
+            <label for="person-name-input">Nombre de la persona</label>
+            <input type="text" id="person-name-input" placeholder="Ej. Juan Pérez">
+          </div>
+          <div class="input-group">
+            <label for="person-cat-select">Categoría</label>
+            <select id="person-cat-select">
+              <!-- Se cargan dinámicamente -->
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="person-initial-prayer-input">Petición inicial (Opcional)</label>
+            <input type="text" id="person-initial-prayer-input" placeholder="Ej. Por su salud, trabajo...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div style="flex-grow: 1;"></div>
+          <button id="btn-cancel-person" class="btn-secondary">Cancelar</button>
+          <button id="btn-save-person" class="btn-primary">Añadir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Confirmación de Eliminación -->
+    <div id="confirm-modal" class="modal-backdrop hidden">
+      <div class="modal-box" style="max-width: 380px;">
+        <div class="modal-header" style="border: none; padding-bottom: 0;">
+          <h3 id="confirm-modal-title">¿Estás seguro?</h3>
+        </div>
+        <div class="modal-body" style="padding: 12px 20px 24px;">
+          <p id="confirm-modal-message" style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin: 0;"></p>
+        </div>
+        <div class="modal-footer" style="background-color: transparent; border-top: none; padding-top: 0;">
+          <button id="btn-confirm-cancel" class="btn-secondary" style="flex: 1;">Cancelar</button>
+          <button id="btn-confirm-ok" class="btn-primary" style="background-color: var(--color-danger); border-color: var(--color-danger); color: #ffffff; flex: 1;">Eliminar</button>
         </div>
       </div>
     </div>
